@@ -1,5 +1,6 @@
 _interruptionsBP: CODE, 24 0 138
 _interruptionsHP: CODE, 8 0 260
+_TAB_VITESSE: MEDIUMCONST, 64383 0 1152
 _main: CODE, 268 0 20
 __initialization: CODE, 288 0 0
-Total: 418
+Total: 1570
