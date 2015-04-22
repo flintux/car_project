@@ -28,6 +28,9 @@
 #define ERROR 255
 #define CYCLE 36
 
+#define PUISSANCE_MAX 40
+#define PUISSANCE_ARRET 5
+
 /* tableau de contanstes pour les vitesses
  * 64 niveaux et 18 angles de 0 à 170
  */
@@ -165,6 +168,20 @@ typedef enum {
  * @param ccp Structure pour les valeurs PWM.
  */
 void calculeAmplitudesEnMouvement(unsigned char alpha, unsigned char puissance, ccp_t *ccp) {
+    if (puissance > PUISSANCE_MAX) puissance = PUISSANCE_MAX;
+    if (alpha < 12) {
+        ccp->ccpa = TAB_VITESSE[puissance][alpha];
+        ccp->ccpb = TAB_VITESSE[puissance][0];
+        ccp->ccpc = TAB_VITESSE[puissance][alpha + 6];
+    } else if (alpha < 24) {
+        ccp->ccpa = TAB_VITESSE[puissance][alpha - 6];
+        ccp->ccpb = TAB_VITESSE[puissance][alpha - 12];
+        ccp->ccpc = TAB_VITESSE[puissance][0];
+    } else {
+        ccp->ccpa = TAB_VITESSE[puissance][0];
+        ccp->ccpb = TAB_VITESSE[puissance][alpha - 12];
+        ccp->ccpc = TAB_VITESSE[puissance][alpha - 24];
+    }
 
 };
 
@@ -176,7 +193,32 @@ void calculeAmplitudesEnMouvement(unsigned char alpha, unsigned char puissance, 
  * @param ccp Structure pour les valeurs PWM.
  */
 void calculeAmplitudesArret(phase_t phase, ccp_t *ccp) {
-
+    unsigned char alpha;
+    switch (phase)
+    {
+        case PHASE_1:
+            alpha = 0;
+            break;
+        case PHASE_2:
+            alpha = 6;
+            break;
+        case PHASE_3:
+            alpha = 12;
+            break;
+        case PHASE_4:
+            alpha = 18;
+            break;
+        case PHASE_5:
+            alpha = 24;
+            break;
+        case PHASE_6:
+            alpha = 30;
+            break;
+        default:
+            alpha = 0;
+            break;
+    }
+    calculeAmplitudesEnMouvement(alpha, PUISSANCE_ARRET, ccp);
 }
 
 /**
@@ -430,7 +472,7 @@ void main() {
 
 unsigned char test_calculeAmplitudesEnMouvement() {
     unsigned char ft = 0;
-    struct CCP ccp;
+    ccp_t ccp;
 
     calculeAmplitudesEnMouvement(0, 10, &ccp);
     ft += assertEqualsChar(ccp.ccpa,  1, "CCP-00A");
@@ -485,7 +527,7 @@ unsigned char test_phaseSelonHall() {
 
 unsigned char test_calculeAmplitudesArret() {
     unsigned char ft = 0;
-    struct CCP ccp;
+    ccp_t ccp;
 
     calculeAmplitudesArret(0, &ccp);
     ft += assertEqualsChar(ccp.ccpa, 1, "CAA-0A");
