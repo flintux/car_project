@@ -1,0 +1,299 @@
+=========================================================================================
+======                             Calculs préalables.                             ======
+=========================================================================================
+
+Exo 1:
+------
+
+- Si le PIC18f26k22 est configuré à 64MHz
+- Nous voulons générer un PWM de 255 niveaux, sans devoir séparer les deux bits moins signifiants.
+- Le moteur tourne à une vitesse maximum de 15'000 rpm
+- Le moteur tourne à une vitesse minimum de 125 rpm.
+
+Calculez:
+- La fréquence du signal PWM que nous pouvons générer.
+- Le nombre de cycles PWM par phase à la vitesse maximum.
+- Le nombre de cycles PWM par tour à la vitesse maximum.
+- Le nombre de cycles PWM par phase à la vitesse minimum.
+- Le nombre de cycles PWM par tour à la vitesse minimum.
+
+
+Exo 2:
+------
+Si nous branchons un signal PWM en provenance d'une télécommande sur INT1.
+Nous utilisons TMR1 pour mesurer la durée du temps haut.
+Nous voulons obtenir une valeur aproximativement -30 et +30, selon la position de la télécommande.
+
+Calculez:
+- Quelle fréquence pour le temporisateur TMR1?
+- Quelle configuration?
+- Quelles valeurs limites peut-on obtenir exactement selon la position de la télécommande?
+  * Vmin = (extrémité négative)
+  * Vmax = (extrémité positive)
+  * Est-ce que Vmax = -Vmin?
+
+Exo 3:
+------
+- Avec une feuille de calcul, divisez en Vmax intervales la vitesse maximum et minimum du moteur.
+- Pour chaque vitesse, comptez le nombre de cycles PWM par phase.
+
+Exo 4:
+------
+Avec une feuille de calcul, produisez un tableau de sin(x).
+- Avec 18 colonnes:
+  * Chaque colonne représente une valeur entière de x
+  * X prend des valeurs entre 0 et 18.
+  * L'angle est: alpha = x * 10
+  
+- Avec 64 lignes:
+  * Chaque ligne represente une amplitude de sin(x)
+  * La première ligne représente l'amplitude 0.
+  * La dernière ligne représente l'amplitude maximum.
+
+- Les valeurs du tableau sont:
+  * des entiers non signés de 8 bits.
+  * Ont des valeurs entre 1 et 255
+
+Exo 5:
+------
+(En consultant internet) 
+- Comment pouvez-vous stocker des tableaux de la taille de celui de l'exercice 4 dans le PIC18f26k22?
+
+
+=========================================================================================
+======                             Architecture du programme                       ======
+=========================================================================================
+(fig 1)
+
+Les quatre interruptions suivantes sont utilisées pour envoyer des événements à une machine à états:
+
+- INT1F: 
+	Le signal de sortie d'un récépteur de télécommande est connecté sur l'entrée INT1.
+	- Lorsqu'un flanc montant est détecté, le temporisateur TMR1 est mis à zéro.
+	- Lorsqu'un flanc descendant est détecté, la valeur du temporisateur est envoyée
+	  à la machine, accompagné d'un événement VITESSE.
+
+- TMR2IF:
+	- Le temporisateur 2 est utilisé pour gouverner la génération des 3 signaux PWM.
+	- En plus, il est configuré pour produire une interruption chaque fois qu'il déborde.
+	- À ce moment la machine reçoit un événement TICTAC, accompagné de la lecture des senseurs Hall.
+	- La machine répond avec la structure CCP, qui contient les cycles de travail des PWM.
+
+- RBIF:
+	- Les senseurs Hall du moteur sont connectés aux entrées IOC0, IOC1, IOC2
+	- Chaque fois qu'elles changent, il se produit une interruption.
+	- À ce moment la machine reçoit un événement PHASE, accompagné de la lecture des senseurs Hall.
+
+- TMR0IF:
+	- Le temporisateur 0 est configuré pour déborder 
+	- Le temporisateur 0 est réinitialisé à chaque changement de phase.
+	- Tant que le moteur tourne, cette interruption ne devrait jamais se produire.
+	- Si le moteur tarde trop à passer de phase, cette interruption permet d'envoyer à la
+	  machine un événement BLOCAGE.
+
+(fig 2)
+
+enum STATUS {
+    /** 
+     * Le moteur est en arrêt.
+     */
+    ARRET,
+    
+    /** 
+     * Le moteur est en train de démarrer. Il n'est pas encore possible
+     * de calculer sa vitesse.
+     */
+    DEMARRAGE,
+    
+    /**
+     * Le moteur est en mouvement. Sa vitesse est stable ou 
+     * elle varie lentement.
+     */
+    EN_MOUVEMENT,
+    
+    /**
+     * Le moteur est bloqué.
+     */
+    BLOQUE,
+};
+
+enum EVENEMENT {
+    /** Fin de période du PWM. */
+    TICTAC,
+
+    /** Le moteur vient de changer de phase.*/
+    PHASE,
+
+    /** Il s'est ecoulé trop de temps depuis le dernier changement de phase. */
+    BLOCAGE,
+    
+    /** La vitesse demandée a varié. */
+    VITESSE
+};
+
+
+ARRET:
+- Initialement la machine est en état ARRET.
+- Répond aux événements TICTAC avec un CCP minimum.
+- Si une vitesse supérieure à [X] est demandée, elle passe à l'état DEMARRAGE.
+
+DEMARRAGE:
+- Dans cet état, le moteur commence à tourner. Il n'est pas possible de connaitre
+  sa vitesse car celle-ci varie fortement.
+- La machine atteint cet état également en réponse à un événement BLOCAGE. Il faut
+  donc travailler avec l'hypothèse que le moteur est bloqué.
+- Comme la vitesse est basse, les phases sont très longues: il ne faut pas donner
+  trop de puissance.
+- La machine sort de cet état:
+  - Après un nombre de phases [P], elle passe à EN_MOUVEMENT.
+  - Après un nombre de BLOCAGES, elle passe à BLOQUE.
+
+EN_MOUVEMENT:
+- Dans cet état la machine doit produire des signaux synchronisés en fréquence avec
+  le mouvement du moteur, et adaptés en puissance avec la vitesse demandée.
+
+BLOQUE:
+- Répond aux événements TICTAC avec un CCP minimum.
+- Ne bouge plus de cet état. Il faut réinitialiser le programme.
+
+
+Exo 6
+-----
+Écrivez la routine main(), qui se charge de configurer les différents périphériques
+selon les calculs des exercices précédents, et la descriptions des états et événements
+ci-dessus.
+
+=========================================================================================
+======                             Scénarios.                                      ======
+=========================================================================================
+(1) - DEMARRAGE - TICTAC - La machine reçoit une lecture 
+des senseurs Hall, et répond avec des valeurs de CCP:
+a) Utilise phaseSelonHall pour établir le numéro de phase.
+b) Appelle calculeAmplitudesArret pour établir la valeurs des PWM.
+c) Incrémente un compteur pour mesurer la durée de phase.
+ 
+(2) - DEMARRAGE - PHASE - La machine doit déterminer si elle peut
+passer à l'état EN_MARCHE. Pour ceci:
+- Elle utilise phaseSelonHallEtDirection pour vérifier que la phase est correcte
+  et qu'il n'y a pas eu de rebondissements.
+- Si la phase est correcte, alors on incrémente le compteur de phases.
+- Si le nombre de phases [P] est atteint 
+  - Utilise angleSelonPhaseEtDirection pour determiner l'angle actuel.
+  - Utilise corrigeAngleEtVitesse pour initialiser le calcul de l'angle.
+  - Initialise la puissance à [PP].
+  - Établit le status à EN_MOUVEMENT.
+
+(3) - EN_MOUVEMENT - TICTAC - La machine doit produire les signaux synchronisés
+avec le mouvement du moteur.
+- Elle incrémente le compteur pour la durée de la phase.
+- Elle appelle calculeAngle pour estimer l'angle actuel.
+- Elle appelle calculeAmplitudesEnMouvement pour calculer les cycles de travail des PWM.
+
+(4) - EN_MOUVEMENT - PHASE - À ce moment la machine peut savoir quel est l'angle exact,
+quelle est la durée de la dernière phase. Elle profite aussi pour corriger la puissance
+à appliquer:
+- Utilise phaseSelonHallEtDirection pour determiner la phase, et vérifier qu'il n'y
+  a pas d'erreur.
+- Utilise angleSelonPhaseEtDirection pour déterminer l'angle.
+- Utilise corrigeAngleEtVitesse pour corriger l'angle estimé.
+- Utilise calculePuissance pour éventuellement corriger la puissance à appliquer selon
+  la vitesse demandée.
+- Remet le compteur de durée de phase à zéro.
+
+
+=========================================================================================
+======                             Méthodes auxiliaires.                           ======
+=========================================================================================
+
+/**
+ * Determine la phase en cours d'après les senseurs hall.
+ * @param hall La valeur des senseurs hall: 0xb*****yzx
+ * @return Le numéro de phase, entre 1 et 6.
+ */
+unsigned char phaseSelonHall(unsigned char hall);
+
+/**
+ * Rend les valeurs PWM para rapport à la phase spécifiée.
+ * À appeler lorsque seule la phase est connue, mais pas l'angle, c'est à dire 
+ * lorsque le moteur est à l'arret.
+ * - Calcule l'angle moyen correspondant à la phase spécifiée.
+ * - Utilise 'calculeAmplitudesEnMouvement' pour obtenir les valeurs de
+ *   PWM correspondantes à cet angle, avec une puissance moyenne.
+ * - Si la phase spécifiée est en dehors des valeurs possibles, rend un PWM minumum.
+ * @param phase Phase, entre 1 et 6.
+ * @param ccp Structure pour les valeurs PWM.
+ */
+void calculeAmplitudesArret(unsigned char phase, struct CCP *ccp);
+
+/**
+ * Rend les valeurs PWM para rapport à l'angle spécifié.
+ * À appeler lorsque l'angle est connu, c'est à dire, lorsque le moteur
+ * est en mouvement.
+ * @param alpha Angle, entre 0 et 35.
+ * @param puissance, entre 0 et 64.
+ * @param ccp Structure pour les valeurs PWM.
+ */
+void calculeAmplitudesEnMouvement(unsigned char alpha, unsigned char puissance, struct CCP *ccp);
+
+/**
+ * Calcule la phase en cours à partir de la lecture des senseurs hall.
+ * Effectue également un contrôle de la lecture, pour vérifier si elle est
+ * possible. Ceci sert à éviter de compter des rebondissements ou du bruit
+ * qui affecte la lecture des senseurs.
+ * Rend une erreur dans les cas suivants:
+ * - Deux appels successifs avec la même lecture de Hall
+ * - Deux appels successifs, avec des lectures de Hall qui ne correspondent pas
+ *   à des phases successives, ou qui vont dans le sens inverse de la marche.
+ * @param hall La valeur des senseurs hall: 0xb*****yzx
+ * @param direction Direction actuelle.
+ * @return La phase (de 1 à 6) ou un code d'erreur.
+ */
+unsigned char phaseSelonHallEtDirection(unsigned char hall, enum DIRECTION direction);
+
+/**
+ * Calcule l'angle correspondant à la phase et à la direction actuelle
+ * de rotation.
+ * Cette fonction est appelée en réponse à une interruption; suivant la direction,
+ * l'angle rendu correspond au début ou à la fin de la phase.
+ * @param phase Phase actuelle.
+ * @param direction Direction actuelle.
+ * @return L'angle correspondant.
+ */
+unsigned char angleSelonPhaseEtDirection(unsigned char phase, enum DIRECTION direction);
+
+/**
+ * Cette fonction est appelée en réponse à un changement de phase. À
+ * cet instant on connait la valeur exacte des deux paramètres.
+ * @param angle Angle exact.
+ * @param dureeDePhase Durée de la dernière phase.
+ */
+void corrigeAngleEtVitesse(unsigned char angle, int dureeDePhase);
+
+/**
+ * Cette fonction est appelée à chaque cycle de PWM pour calculer (estimer)
+ * l'angle actuel.
+ * Le calcul se fait sur la base du dernier angle connu avec précision et
+ * de la durée de la dernière phase. Ces valeurs ont été établies par l'appel
+ * à 'corrigeAngleEtVitesse'.
+ * @return L'angle actuel estimé.
+ */
+unsigned char calculeAngle();
+
+/**
+ * Etablit la puissance de départ.
+ * Est utilisée pour initialiser la puissance à une valeur possible,
+ * en particulier suite à un démarrage ou à une situation de blocage.
+ * @param p La puissance de départ.
+ */
+void etablitPuissance(unsigned char p);
+
+/**
+ * Calcule la puissance selon la vitesse demandée et la durée de la dernière phase.
+ * @param dureeDePhase Durée de phase actuelle.
+ * @param vitesse Vitesse demandée.
+ * @return Puissance à appliquer.
+ */
+unsigned char calculePuissance(int dureeDePhase, unsigned char vitesse);
+
+
+
