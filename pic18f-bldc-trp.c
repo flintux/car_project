@@ -106,7 +106,7 @@ void calculeAmplitudesEnMouvement(unsigned char alpha, unsigned char puissance, 
  * @param phase Phase, entre 0 et 5.
  * @param ccp Structure pour les valeurs PWM.
  */
-void calculeAmplitudesArret(unsigned char phase, ccp_t *ccp) {
+void calculeAmplitudesArret(phase_t phase, ccp_t *ccp) {
 
 }
 
@@ -161,7 +161,7 @@ phase_t phaseSelonHallEtDirection(unsigned char hall, direction_t direction) {
 
     phase = phaseSelonHall(hall);
     
-    // if last_phase == error then it is first time
+    // if last_phase == error alors c'est la première fois
     if (PHASE_ERROR == lastPhase)
     {
         lastPhase = phase;
@@ -170,17 +170,59 @@ phase_t phaseSelonHallEtDirection(unsigned char hall, direction_t direction) {
     {
         if (AVANT == direction)
         {
-            
+            switch (phase)
+            {
+                case PHASE_1:
+                    if (PHASE_6 != lastPhase) phase = PHASE_ERROR;
+                    break;
+                case PHASE_2:
+                    if (PHASE_1 != lastPhase) phase = PHASE_ERROR;
+                    break;
+                case PHASE_3:
+                    if (PHASE_2 != lastPhase) phase = PHASE_ERROR;
+                    break;
+                case PHASE_4:
+                    if (PHASE_3 != lastPhase) phase = PHASE_ERROR;
+                    break;
+                case PHASE_5:
+                    if (PHASE_4 != lastPhase) phase = PHASE_ERROR;
+                    break;
+                case PHASE_6:
+                    if (PHASE_5 != lastPhase) phase = PHASE_ERROR;
+                    break;
+            }
         }
         else if (ARRIERE == direction)
         {
-
+            switch (phase)
+            {
+                case PHASE_1:
+                    if (PHASE_2 != lastPhase) phase = PHASE_ERROR;
+                    break;
+                case PHASE_2:
+                    if (PHASE_3 != lastPhase) phase = PHASE_ERROR;
+                    break;
+                case PHASE_3:
+                    if (PHASE_4 != lastPhase) phase = PHASE_ERROR;
+                    break;
+                case PHASE_4:
+                    if (PHASE_5 != lastPhase) phase = PHASE_ERROR;
+                    break;
+                case PHASE_5:
+                    if (PHASE_6 != lastPhase) phase = PHASE_ERROR;
+                    break;
+                case PHASE_6:
+                    if (PHASE_1 != lastPhase) phase = PHASE_ERROR;
+                    break;
+            }
         }
         else
         {
             phase = PHASE_ERROR;
         }
     }
+
+    lastPhase = phase;
 
     return phase;
 }
@@ -190,10 +232,56 @@ phase_t phaseSelonHallEtDirection(unsigned char hall, direction_t direction) {
  * de rotation.
  * @param phase Phase actuelle.
  * @param direction Direction actuelle.
- * @return L'angle correspondant.
+ * @return L'angle correspondant entre 0 et 35.
  */
-unsigned char angleSelonPhaseEtDirection(unsigned char phase, direction_t direction) {
-    return 0;
+unsigned char angleSelonPhaseEtDirection(phase_t phase, direction_t direction) {
+    unsigned char angle;
+    switch (phase)
+    {
+        case PHASE_1:
+            if (AVANT == direction) {
+                angle = 0;
+            } else {
+                angle = 6;
+            }
+            break;
+        case PHASE_2:
+            if (AVANT == direction) {
+                angle = 6;
+            } else {
+                angle = 12;
+            }
+            break;
+        case PHASE_3:
+            if (AVANT == direction) {
+                angle = 12;
+            } else {
+                angle = 18;
+            }
+            break;
+        case PHASE_4:
+            if (AVANT == direction) {
+                angle = 18;
+            } else {
+                angle = 24;
+            }
+            break;
+        case PHASE_5:
+            if (AVANT == direction) {
+                angle = 24;
+            } else {
+                angle = 30;
+            }
+            break;
+        case PHASE_6:
+            if (AVANT == direction) {
+                angle = 30;
+            } else {
+                angle = 0;
+            }
+            break;
+    }
+    return angle;
 }
 
 /**
