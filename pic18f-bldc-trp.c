@@ -28,18 +28,28 @@
 #define ERROR 255
 #define CYCLE 36
 
-struct CCP {
+typedef struct {
     unsigned char ccpa;
     unsigned char ccpb;
     unsigned char ccpc;
-};
+} ccp_t;
 
-enum DIRECTION {
+typedef enum {
     AVANT,
     ARRIERE
-};
+} direction_t;
 
-enum EVENEMENT {
+typedef enum {
+    PHASE_1,
+    PHASE_2,
+    PHASE_3,
+    PHASE_4,
+    PHASE_5,
+    PHASE_6,
+    PHASE_ERROR
+} phase_t;
+
+typedef enum {
     /** Fin de période du PWM. */
     TICTAC,
 
@@ -51,9 +61,9 @@ enum EVENEMENT {
     
     /** La vitesse demandée a varié. */
     VITESSE
-};
+} evenement_t;
 
-enum STATUS {
+typedef enum {
     /**
      * Le moteur est en arrêt.
      */
@@ -75,7 +85,7 @@ enum STATUS {
      * Le moteur est bloqué.
      */
     BLOQUE
-};
+} status_t;
 
 /**
  * Rend les valeurs PWM para rapport à l'angle spécifié.
@@ -85,7 +95,7 @@ enum STATUS {
  * @param puissance, entre 0 et 50.
  * @param ccp Structure pour les valeurs PWM.
  */
-void calculeAmplitudesEnMouvement(unsigned char alpha, unsigned char puissance, struct CCP *ccp) {
+void calculeAmplitudesEnMouvement(unsigned char alpha, unsigned char puissance, ccp_t *ccp) {
 
 };
 
@@ -96,7 +106,7 @@ void calculeAmplitudesEnMouvement(unsigned char alpha, unsigned char puissance, 
  * @param phase Phase, entre 0 et 5.
  * @param ccp Structure pour les valeurs PWM.
  */
-void calculeAmplitudesArret(unsigned char phase, struct CCP *ccp) {
+void calculeAmplitudesArret(unsigned char phase, ccp_t *ccp) {
 
 }
 
@@ -105,8 +115,35 @@ void calculeAmplitudesArret(unsigned char phase, struct CCP *ccp) {
  * @param hall La valeur des senseurs hall: 0xb*****yzx
  * @return Le numéro de phase, entre 1 et 6.
  */
-unsigned char phaseSelonHall(unsigned char hall) {
-    return 0;
+phase_t phaseSelonHall(unsigned char hall) {
+    unsigned char c;
+    phase_t phase;
+    c = hall & 0x07;
+    switch(c)
+    {
+        case 0b001:
+            phase = PHASE_1;
+            break;
+        case 0b011:
+            phase = PHASE_2;
+            break;
+        case 0b010:
+            phase = PHASE_3;
+            break;
+        case 0b110:
+            phase = PHASE_4;
+            break;
+        case 0b100:
+            phase = PHASE_5;
+            break;
+        case 0b101:
+            phase = PHASE_6;
+            break;
+        default:
+            phase = PHASE_1;
+            break;
+    }
+    return phase;
 }
 
 /**
@@ -118,8 +155,34 @@ unsigned char phaseSelonHall(unsigned char hall) {
  * @param direction Direction actuelle.
  * @return La phase (de 0 à 5) ou un code d'erreur.
  */
-unsigned char phaseSelonHallEtDirection(unsigned char hall, enum DIRECTION direction) {
-    return 0;
+phase_t phaseSelonHallEtDirection(unsigned char hall, direction_t direction) {
+    phase_t phase;
+    phase_t lastPhase = PHASE_ERROR;
+
+    phase = phaseSelonHall(hall);
+    
+    // if last_phase == error then it is first time
+    if (PHASE_ERROR == lastPhase)
+    {
+        lastPhase = phase;
+    }
+    else
+    {
+        if (AVANT == direction)
+        {
+            
+        }
+        else if (ARRIERE == direction)
+        {
+
+        }
+        else
+        {
+            phase = PHASE_ERROR;
+        }
+    }
+
+    return phase;
 }
 
 /**
@@ -129,7 +192,7 @@ unsigned char phaseSelonHallEtDirection(unsigned char hall, enum DIRECTION direc
  * @param direction Direction actuelle.
  * @return L'angle correspondant.
  */
-unsigned char angleSelonPhaseEtDirection(unsigned char phase, enum DIRECTION direction) {
+unsigned char angleSelonPhaseEtDirection(unsigned char phase, direction_t direction) {
     return 0;
 }
 
@@ -173,7 +236,7 @@ unsigned char calculePuissance(int dureeDePhase, unsigned char vitesse) {
     return 0;
 }
 
-void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
+void machine(evenement_t evenement, unsigned char x, ccp_t *ccp) {
 
 }
 

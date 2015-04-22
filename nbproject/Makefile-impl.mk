@@ -24,7 +24,7 @@ CLEAN_SUBPROJECTS=${CLEAN_SUBPROJECTS_${SUBPROJECTS}}
 
 
 # Project Name
-PROJECTNAME=pic18f-bldc-trp.X
+PROJECTNAME=car_project
 
 # Active Configuration
 DEFAULTCONF=default
