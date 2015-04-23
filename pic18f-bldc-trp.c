@@ -30,6 +30,7 @@
 
 #define PUISSANCE_MAX 40
 #define PUISSANCE_ARRET 0
+#define PUISSANCE_DEPART 5
 
 /* tableau de contanstes pour les vitesses
  * 64 niveaux et 18 angles de 0 à 170
@@ -148,6 +149,17 @@ enum STATUS {
      */
     BLOQUE
 };
+
+/*
+ * variables globales
+ *
+ *
+ */
+
+enum STATUS etat;
+unsigned char phaseActuelle;
+unsigned char puissanceActuelle;
+unsigned char angleActuel;
 
 /**
  * Rend les valeurs PWM para rapport à l'angle spécifié.
@@ -407,7 +419,7 @@ unsigned char calculeAngle() {
  * @param p La puissance de départ.
  */
 void etablitPuissance(unsigned char p) {
-
+    puissanceActuelle = p;
 }
 
 /**
@@ -421,7 +433,61 @@ unsigned char calculePuissance(int dureeDePhase, unsigned char vitesse) {
 }
 
 void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
-
+    switch (etat)
+    {
+        case ARRET:
+            switch (evenement)
+            {
+                case BLOCAGE:
+                    break;
+                case PHASE:
+                    break;
+                case TICTAC:
+                    break;
+                case VITESSE:
+                    break;
+            }
+            break;
+        case BLOQUE:
+            switch (evenement)
+            {
+                case BLOCAGE:
+                    break;
+                case PHASE:
+                    break;
+                case TICTAC:
+                    break;
+                case VITESSE:
+                    break;
+            }
+            break;
+        case DEMARRAGE:
+            switch (evenement)
+            {
+                case BLOCAGE:
+                    break;
+                case PHASE:
+                    break;
+                case TICTAC:
+                    break;
+                case VITESSE:
+                    break;
+            }
+            break;
+        case EN_MOUVEMENT:
+            switch (evenement)
+            {
+                case BLOCAGE:
+                    break;
+                case PHASE:
+                    break;
+                case TICTAC:
+                    break;
+                case VITESSE:
+                    break;
+            }
+            break;
+    }
 }
 
 #ifndef TEST
@@ -452,6 +518,22 @@ void main() {
     ANSELB = 0x00; // Désactive les convertisseurs A/D.
     ANSELC = 0x00; // Désactive les convertisseurs A/D.
 
+
+    // initialisation des variables globales
+    etat = DEMARRAGE;
+
+    etablitPuissance(PUISSANCE_DEPART);
+
+    //configurer et activer le timer pour la lecture de la telecommande
+
+    //configurer le port pour lire les sensors hall et les interrupt
+    // init la phase et l'angle selon le status des hall
+
+    // configurer la sortie des PWM
+
+    // configurer l'interrupt du PWM (evenement TICTAC)
+
+    // configurer
 
     // Ne fait plus rien. Les interruptions s'en chargent.
     while(1);
