@@ -435,57 +435,97 @@ unsigned char calculePuissance(int dureeDePhase, unsigned char vitesse) {
 }
 
 void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
-    switch (etat)
-    {
-        case ARRET:
-            switch (evenement)
-            {
-                case BLOCAGE:
+
+    static enum STATUS status = ARRET;
+    static char phase  = 0;  // compteur de phase pour le DEMARRAGE.
+    unsigned char angle;        // Utillisé dans DEMARRAGE
+    char duree_phase = 0;
+    char nbr_phase = 0;
+    char nbr_blocage = 0;
+
+    switch (status) {
+        case ARRET: // Le moteur est en arrêt.
+            switch (evenement) {
+                case TICTAC: // Fin de période du PWM.
+                    /* Répond aux événements TICTAC avec un CCP minimum. */
+                    ccp -> ccpa = 1;    // Pour la simulation !
+                    ccp -> ccpb = 1;
+                    ccp -> ccpc = 1;
                     break;
-                case PHASE:
+                case PHASE: // Le moteur vient de changer de phase.
+                    /* Ne fait rien */
                     break;
-                case TICTAC:
+                case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
+                    /* Ne fait rien */
                     break;
-                case VITESSE:
-                    break;
-            }
-            break;
-        case BLOQUE:
-            switch (evenement)
-            {
-                case BLOCAGE:
-                    break;
-                case PHASE:
-                    break;
-                case TICTAC:
-                    break;
-                case VITESSE:
-                    break;
-            }
-            break;
-        case DEMARRAGE:
-            switch (evenement)
-            {
-                case BLOCAGE:
-                    break;
-                case PHASE:
-                    break;
-                case TICTAC:
-                    break;
-                case VITESSE:
+                case VITESSE: // La vitesse demandée a varié.
+                    /* Si une vitesse supérieure à [X] est demandée, elle passe à l'état DEMARRAGE. */
+                    if (x > 10){
+                        status = DEMARRAGE;
+                    }
                     break;
             }
             break;
-        case EN_MOUVEMENT:
-            switch (evenement)
-            {
-                case BLOCAGE:
+        case DEMARRAGE: // Le moteur est en train de démarrer. Il n'est pas encore possible de calculer sa vitesse.
+            switch (evenement) {
+                case TICTAC: // Fin de période du PWM.
+                    phase = phaseSelonHall(x);  // x correspond à la valeur des capteurs Hall.
+                    calculeAmplitudesArret(phase, ccp);
+                    duree_phase++;
                     break;
-                case PHASE:
+                case PHASE: // Le moteur vient de changer de phase.
+                    phase = phaseSelonHallEtDirection(x, AVANT); // x correspond à la valeur des capteurs Hall.
+
+                    if(phase != ERROR){
+                        nbr_phase++;
+                    }
+
+                    if(nbr_phase > 5){
+                        angle = angleSelonPhaseEtDirection(phase, AVANT);
+                        corrigeAngleEtVitesse(angle, duree_phase);
+
+                        status = EN_MOUVEMENT;
+                    }
                     break;
-                case TICTAC:
+                case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
+                    nbr_phase = 0;
+                    nbr_blocage++;
+                    if(nbr_blocage > 9){
+                        status = BLOQUE;
+                    }
                     break;
-                case VITESSE:
+                case VITESSE: // La vitesse demandée a varié.
+                    /* Ne fait rien */
+                    break;
+            }
+            break;
+        case EN_MOUVEMENT: // Le moteur est en mouvement. Sa vitesse est stable ou elle varie lentement.
+            switch (evenement) {
+                case TICTAC: // Fin de période du PWM.
+                    break;
+                case PHASE: // Le moteur vient de changer de phase.
+                    break;
+                case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
+                    break;
+                case VITESSE: // La vitesse demandée a varié.
+                    break;
+            }
+            break;
+        case BLOQUE: // Le moteur est bloqué.
+            switch (evenement) {
+                case TICTAC: // Fin de période du PWM.
+                    ccp -> ccpa = 1;    // Pour la simulation !
+                    ccp -> ccpb = 1;
+                    ccp -> ccpc = 1;
+                    break;
+                case PHASE: // Le moteur vient de changer de phase.
+                    /* Ne fait rien */
+                    break;
+                case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
+                    /* Ne fait rien */
+                    break;
+                case VITESSE: // La vitesse demandée a varié.
+                    /* Ne fait rien */
                     break;
             }
             break;
