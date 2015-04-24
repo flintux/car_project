@@ -436,12 +436,14 @@ unsigned char calculePuissance(int dureeDePhase, unsigned char vitesse) {
 
 void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
 
+	/* Attention : La valeur x demandée dépends de l'evenement et du status en cours ! */
+
     static enum STATUS status = ARRET;
     static char phase  = 0;  // compteur de phase pour le DEMARRAGE.
     unsigned char angle;        // Utillisé dans DEMARRAGE
-    char duree_phase = 0;
-    char nbr_phase = 0;
-    char nbr_blocage = 0;
+    static char duree_phase = 0;
+    static char nbr_phase = 0;
+    static char nbr_blocage = 0;
 
     switch (status) {
         case ARRET: // Le moteur est en arrêt.
@@ -460,7 +462,7 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
                     break;
                 case VITESSE: // La vitesse demandée a varié.
                     /* Si une vitesse supérieure à [X] est demandée, elle passe à l'état DEMARRAGE. */
-                    if (x > 10){
+                    if (x > 10){		// x == vitesse demandée par la commande
                         status = DEMARRAGE;
                     }
                     break;
