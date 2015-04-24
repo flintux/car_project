@@ -183,7 +183,7 @@ void calculeAmplitudesEnMouvement(unsigned char alpha, unsigned char puissance, 
         ccp->ccpc = TAB_VITESSE[puissance][0];
     } else {
         ccp->ccpa = TAB_VITESSE[puissance][0];
-        ccp->ccpb = TAB_VITESSE[puissance][alpha - 12];
+        ccp->ccpb = TAB_VITESSE[puissance][alpha - 18];
         ccp->ccpc = TAB_VITESSE[puissance][alpha - 24];
     }
 
