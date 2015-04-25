@@ -32,6 +32,8 @@
 #define PUISSANCE_ARRET 0
 #define PUISSANCE_DEPART 5
 
+#define ANGLE_DY 12 // en degré
+
 /* tableau de contanstes pour les vitesses
  * 65 niveaux et 18 angles de 0 à 170
  */
@@ -162,6 +164,16 @@ enum STATUS etat;
 unsigned char phaseActuelle;
 unsigned char puissanceActuelle;
 unsigned char angleActuel;
+
+/*
+ * nbTicTacDeLaPhaseEnCours doit être incrémentée à chaque fin de pwm
+ * puis doit être à chaque nouvelle phase copié dans
+ * nbTicTacDeLaPhasePrecedante avant d'être réinitialisé à 0
+ */
+int nbTicTacDeLaPhaseEnCours;
+int nbTicTacDeLaPhasePrecedante;
+int erreurAngle;
+int angleEstime;
 
 /**
  * Rend les valeurs PWM para rapport à l'angle spécifié.
@@ -400,7 +412,11 @@ unsigned char angleSelonPhaseEtDirection(unsigned char phase, enum DIRECTION dir
  * @param dureeDePhase Durée de la dernière phase.
  */
 void corrigeAngleEtVitesse(unsigned char angle, int dureeDePhase) {
-
+    nbTicTacDeLaPhasePrecedante = dureeDePhase;
+    nbTicTacDeLaPhaseEnCours = 0;
+    erreurAngle = nbTicTacDeLaPhasePrecedante*2;
+    angleEstime = 0;
+    angleActuel = angle;
 }
 
 /**
@@ -413,7 +429,16 @@ void corrigeAngleEtVitesse(unsigned char angle, int dureeDePhase) {
  */
 unsigned char calculeAngle() {
     unsigned char angle;
-    return 0;
+    nbTicTacDeLaPhaseEnCours++;
+    erreurAngle -= ANGLE_DY;
+    if(erreurAngle < 0)
+    {
+        angleEstime++;
+        erreurAngle += (nbTicTacDeLaPhasePrecedante*2);
+        
+    }
+    angle = angleActuel + angleEstime;
+    return angle;
 }
 
 /**
@@ -760,6 +785,7 @@ unsigned char test_calculeAngle() {
     for (n = 0; n < 120; n++) {
         calculeAngle();
     }
+   
     assertEqualsChar(calculeAngle(), 18, "CA-18");
 
     corrigeAngleEtVitesse(0, 50);
