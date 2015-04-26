@@ -468,7 +468,7 @@ unsigned char calculePuissance(int dureeDePhase, unsigned char vitesse) {
 unsigned char calculeVitesseTelecommande(unsigned int dureePulse) {
     unsigned char vitesse;
     dureePulse = dureePulse >> 5;
-    dureePulse -= 93;       // TODO fix negative values.
+    dureePulse -= 93;       // TODO fix negative values. should be -63
     if (dureePulse > 30) dureePulse = 0;
     vitesse = (unsigned char) dureePulse;
 
@@ -581,6 +581,18 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
  * - Lecture de la télécommande.
  */
 void interrupt interruptionsHP() {
+    unsigned char hall;
+    
+    // vérifier les interruptions hall
+    if (INTCONbits.RBIF) {
+        INTCONbits.RBIF = 0;
+        // lire le port de capteurs hall
+        hall = PORTB;
+        // décaller pour avoir les capteurs en LSB
+        hall = hall >> 4;
+        // TODO rajouter le bon pointeur ccp
+        machine(PHASE, hall, NULL);
+    }
 
 }
 
@@ -592,6 +604,8 @@ void interrupt interruptionsHP() {
  */
 void low_priority interrupt interruptionsBP() {
     unsigned int cptVitesse;
+
+    // vérifier les interruptions INT1
     if (INTCON3bits.INT1F) {
         INTCON3bits.INT1F = 0;
         TMR0L = 0;
@@ -649,6 +663,9 @@ void main() {
     INTCON3bits.INT1IP = 0;   // Interruption TMR1 basse priorité.
 
     //configurer le port pour lire les sensors hall et les interrupt
+    INTCONbits.RBIE = 1;        // Active les interruptions IOC3:IOC0
+    INTCON2bits.RBIP = 1;       // interruptions haute priorité
+
     // init la phase et l'angle selon le status des hall
 
     // configurer la sortie des PWM
