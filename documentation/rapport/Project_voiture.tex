@@ -104,7 +104,7 @@ Lors des interruptions, les événements sont envoyés à la machine a états af
   $C = 256$\\
   et nous voulons la fréquence maximale, donc $TPS = 1$.
   Nous avons donc:
-  $$F_{PWM} = \frac{64000000}{4 \cdot 1 \cdot 256} = 62500 = 62.5 [kHz]$$
+  $$F_{PWM} = \frac{64000000}{4 \cdot 1 \cdot 256} = 62500 = 62.5\ [kHz]$$
   Nous avons donc 62500 cycles de PWM par seconde.
   
   \subsection{Cycles selon vitesse}
@@ -125,7 +125,27 @@ Lors des interruptions, les événements sont envoyés à la machine a états af
   Nous utilisons le TMR1 pour la mesure du signal de la télécommande.
   Un signal PWM avec des cycles de 20 ms sera reçu, la vitesse minimale correspond à une pulse de 1 ms, à vitesse 0 une pulse de 1.5 ms et la vitesse maximale est une pulse de 2 ms.
   Nous devons donc utiliser le timer TMR1 pour mesurer des pulse entre 0 et 2ms.
+  
+  Nous avons des vitesses entre -30 et +30 répartis entre 1ms et 2ms.
+  Nous pouvons donc calculer la résolution minimale du timer TMR1.
+  $$durée_{min} = \frac{durée \ pulse}{nombre\ de\ vitesses} = \frac{1 \cdot 10^{-3}}{61} = 16.39 \ [\mu s]$$
 
+  La fréquence minimale pour le TMR1 est de:
+  $$f_{min} = \frac{1}{durée_{min}} = \frac{1}{16.39 \cdot 10^{-6}} = 61000\ [Hz]$$
+  
+  Le pas le plus petit pour le TMR1:
+  $$f_{max} = \frac{F_{osc}}{1 \cdot 1 \cdot 1} = \frac{64 \cdot 10^{6}}{1 \cdot 1 \cdot 1} = 64\ [MHz]$$
+  $$pas_{min} = \frac{1}{f_{max}}= \frac{1}{64 \cdot 10^{6}} = 15.6\ [ns]$$
+  Le timer TMR1 étant un timer 16 bit, nous pouvons compter jusqu'à $2^{16} = 65536$, avec le pas minimum nous avons une durée maximale de: $pas_{min} \cdot nb_{pas} = 15.6 \cdot 10^{-9} \cdot 65536 = 1.024\ [ms]$
+  
+  Le pas le plus grand pour le TMR1:
+    $$f_{min} = \frac{F_{osc}}{4 \cdot 8 \cdot 1} = \frac{64 \cdot 10^{6}}{4 \cdot 8 \cdot 1} = 2\ [MHz]$$
+  $$pas_{max} = \frac{1}{f_{max}}= \frac{1}{2 \cdot 10^{6}} = 500\ [ns]$$
+    Le timer TMR1 étant un timer 16 bit, nous pouvons compter jusqu'à $2^{16} = 65536$, avec le pas maximum nous avons une durée maximale de: $pas_{max} \cdot nb_{pas} = 500 \cdot 10^{-9} \cdot 65536 = 32.768\ [ms]$
+    
+    Le pas maximum nous permet donc une résolution assez grande ainsi que un comptage qui permet de lire le PWM issu de la télécommande.
+  
+  
 	\newpage
 	\begin{appendix}
 	\section{Constantes}
