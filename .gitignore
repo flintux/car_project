@@ -40,3 +40,10 @@ nbdist/
 nbactions.xml
 nb-configuration.xml
 .nb-gradle/
+
+#tex documentation
+documentation/rapport/*.aux
+documentation/rapport/*.log
+documentation/rapport/*.pdf
+documentation/rapport/*.gz
+documentation/rapport/*.toc
