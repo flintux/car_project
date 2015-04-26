@@ -61,6 +61,21 @@ Project Voiture\\
 	
 	
 \section{Conception du programme principal}
+Le programme sera basé sur des interruptions et une machine a états.
+Après les initialisations, le programme ne fait rien en dehors des interruptions.
+Lors des interruptions, les événements sont envoyés à la machine a états afin de définir le comportement a adopter.
+
+  \subsection{Machine a états}
+  \begin{figure}[H]
+  \includegraphics[width=12cm]{state_machine}
+  \centering
+  \end{figure}
+
+  \subsection{Interfaces}
+  \begin{figure}[H]
+  \includegraphics[width=12cm]{main_view_interfaces}
+  \centering
+  \end{figure}
 
 \section{Calculs d'horloge et des temporisateurs}
   \subsection{Horloge principale}
@@ -86,7 +101,7 @@ Project Voiture\\
   $$F_{PWM} = \frac{F_{OSC}}{4 \cdot TPS \cdot C}$$
   Dans note cas:\\
   $F_{OSC} = 64 MHz$\\
-  $C = 255$\\
+  $C = 256$\\
   et nous voulons la fréquence maximale, donc $TPS = 1$.
   Nous avons donc:
   $$F_{PWM} = \frac{64000000}{4 \cdot 1 \cdot 256} = 62500 = 62.5 [kHz]$$
@@ -104,6 +119,12 @@ Project Voiture\\
   $$ 2.08 \ rps = 12.5\ phases\ /\ seconde$$
   $$Nb_{cpt} = \frac{cps}{rps} = \frac{62500}{2.08} = 30000\ cycles\ par\ tour$$
   $$Nb_{cpp} = \frac{cps}{pps} = \frac{62500}{12.5} = 5000\ cycles\ par\ phase$$
+  
+  \subsection{Horloge et temporisateur pour la télécommande}
+  Une télécommande sera branchée sur INT1 et un signal PWM est reçu.
+  Nous utilisons le TMR1 pour la mesure du signal de la télécommande.
+  Un signal PWM avec des cycles de 20 ms sera reçu, la vitesse minimale correspond à une pulse de 1 ms, à vitesse 0 une pulse de 1.5 ms et la vitesse maximale est une pulse de 2 ms.
+  Nous devons donc utiliser le timer TMR1 pour mesurer des pulse entre 0 et 2ms.
 
 	\newpage
 	\begin{appendix}
