@@ -144,6 +144,18 @@ Lors des interruptions, les événements sont envoyés à la machine a états af
     Le timer TMR1 étant un timer 16 bit, nous pouvons compter jusqu'à $2^{16} = 65536$, avec le pas maximum nous avons une durée maximale de: $pas_{max} \cdot nb_{pas} = 500 \cdot 10^{-9} \cdot 65536 = 32.768\ [ms]$
     
     Le pas maximum nous permet donc une résolution assez grande ainsi que un comptage qui permet de lire le PWM issu de la télécommande.
+    
+    \subsubsection{Calcul de la vitesse en fonction du timer}
+    Nous devons calculer la vitesse en fonction de la durée de la pulse.
+    Vu que le PIC est lent en calculs et que les division prennent beaucoup de temps, nous pouvons essayer de simplifier les calculs.
+    
+    Pour chaque pas de vitesse nous avons:
+    $$\frac{pas_{vitesse}}{pas_{timer}} =  \frac{16.36 \cdot 10^{-6}}{500 \cdot 10^{-9}}=32.78$$
+    Le compteur doit donc incrémenter de 32 pour avancer d'un pas dans la vitesse. Cela nous permet de diviser la valeur du compteur par 32 pour avoir le nombre de pas de vitesse et une division par 32 est au fait un décalage de 5 sur la gauche qui est facile à faire.
+    
+    \subsection{Autre méthode possible}
+    Une autre méthode pour mesurer le PWM de la télécommande consisterait à utiliser le timer TMR1 pour compteur chaque pas de vitesse, c'est à dire nous utiliserions le timer pour générer des interruptions toutes les 15.6 $\mu s$ et un simple compteur serait incrémenté. Cela impliquerait une nouvelle interruption.
+    
   
   
 	\newpage
