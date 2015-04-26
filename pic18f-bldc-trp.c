@@ -588,12 +588,21 @@ void main() {
     ANSELC = 0x00; // Désactive les convertisseurs A/D.
 
 
+    // configuration de l'horloge
+    OSCCONbits.IRCF = 0b111;    // Frequence de base: 16 MHz
+    OSCCONbits.SCS = 0b11;      // utilise l'oscillateur interne HFINTOSC
+
+    OSCTUNEbits.PLLEN = 1;      // utilise la PLL (horloge x 4)
+
+
     // initialisation des variables globales
     etat = DEMARRAGE;
 
     etablitPuissance(PUISSANCE_DEPART);
 
     //configurer et activer le timer pour la lecture de la telecommande
+
+
 
     //configurer le port pour lire les sensors hall et les interrupt
     // init la phase et l'angle selon le status des hall
