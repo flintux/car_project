@@ -1,28 +1,7 @@
-_TAB_VITESSE: MEDIUMCONST, 63707 0 1170
-__stringdata: MEDIUMCONST, 64887 0 647
-_putch: CODE, 59426 0 12
-_calculeAngle: CODE, 59652 0 68
-_calculePuissance: CODE, 59422 0 4
-_phaseSelonHall: CODE, 59802 0 84
-_dpowers: MEDIUMCONST, 64877 0 10
-_assertMinMaxInt: CODE, 60062 0 92
-_main: CODE, 59886 0 86
-_assertEqualsChar: CODE, 59536 0 50
-_EUSART_Initialize: CODE, 59456 0 38
-__initialization: CODE, 59438 0 12
-___lwdiv: CODE, 59720 0 82
-_test_phaseSelonHallEtDirection: CODE, 60900 0 372
-_test_calculeAmplitudesArret: CODE, 62618 0 504
-_test_calculePuissance: CODE, 61272 0 416
-_test_calculeAmplitudesEnMouvement: CODE, 62148 0 470
-_printf: CODE, 61688 0 460
-___lwmod: CODE, 59586 0 66
-_test_calculeAngle: CODE, 60370 0 164
-_test_angleSelonPhaseEtDirection: CODE, 60250 0 120
-_test_phaseSelonHall: CODE, 60700 0 200
-_angleSelonPhaseEtDirection: CODE, 60154 0 96
-_phaseSelonHallEtDirection: CODE, 60534 0 166
-_calculeAmplitudesArret: CODE, 59972 0 90
-_corrigeAngleEtVitesse: CODE, 59494 0 42
-_calculeAmplitudesEnMouvement: CODE, 63122 0 584
-Total: 6105
+_interruptionsBP: CODE, 24 0 138
+_interruptionsHP: CODE, 8 0 260
+_TAB_VITESSE: MEDIUMCONST, 64365 0 1170
+_main: CODE, 268 0 42
+__initialization: CODE, 310 0 12
+_etablitPuissance: CODE, 332 0 8
+Total: 1630

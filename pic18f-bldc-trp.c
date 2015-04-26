@@ -14,10 +14,10 @@
  * Bits de configuration:
  */
 #pragma config FOSC = INTIO67  // Oscillateur interne, ports A6 et A7 comme IO.
-#pragma config IESO = OFF      // Pas d'embrouilles avec l'osc. au démarrage.
+#pragma config IESO = OFF      // Pas d'embrouilles avec l'osc. au dÃ©marrage.
 #pragma config FCMEN = OFF     // Pas de monitorage de l'oscillateur.
 
-// Nécessaires pour ICSP / ICD:
+// NÃ©cessaires pour ICSP / ICD:
 #pragma config MCLRE = EXTMCLR // RE3 est actif comme master reset.
 #pragma config WDTEN = OFF     // Watchdog inactif (pour ICSP /ICD)
 #pragma config LVP = OFF       // Single Supply Enable bits off.
@@ -32,10 +32,10 @@
 #define PUISSANCE_ARRET 0
 #define PUISSANCE_DEPART 5
 
-#define ANGLE_DY 12 // en degré
+#define ANGLE_DY 12 // en degrÃ©
 
 /* tableau de contanstes pour les vitesses
- * 65 niveaux et 18 angles de 0 à 170
+ * 65 niveaux et 18 angles de 0 Ã  170
  */
 const unsigned char TAB_VITESSE[65][18] = {
 {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -117,27 +117,27 @@ enum DIRECTION {
 };
 
 enum EVENEMENT {
-    /** Fin de période du PWM. */
+    /** Fin de pÃ©riode du PWM. */
     TICTAC,
 
     /** Le moteur vient de changer de phase.*/
     PHASE,
 
-    /** Il s'est ecoulé trop de temps depuis le dernier changement de phase. */
+    /** Il s'est ecoulÃ© trop de temps depuis le dernier changement de phase. */
     BLOCAGE,
     
-    /** La vitesse demandée a varié. */
+    /** La vitesse demandÃ©e a variÃ©. */
     VITESSE
 };
 
 enum STATUS {
     /**
-     * Le moteur est en arrêt.
+     * Le moteur est en arrÃªt.
      */
     ARRET,
 
     /**
-     * Le moteur est en train de démarrer. Il n'est pas encore possible
+     * Le moteur est en train de dÃ©marrer. Il n'est pas encore possible
      * de calculer sa vitesse.
      */
     DEMARRAGE,
@@ -149,7 +149,7 @@ enum STATUS {
     EN_MOUVEMENT,
 
     /**
-     * Le moteur est bloqué.
+     * Le moteur est bloquÃ©.
      */
     BLOQUE
 };
@@ -166,9 +166,9 @@ unsigned char puissanceActuelle;
 unsigned char angleActuel;
 
 /*
- * nbTicTacDeLaPhaseEnCours doit être incrémentée à chaque fin de pwm
- * puis doit être à chaque nouvelle phase copié dans
- * nbTicTacDeLaPhasePrecedante avant d'être réinitialisé à 0
+ * nbTicTacDeLaPhaseEnCours doit Ãªtre incrÃ©mentÃ©e Ã  chaque fin de pwm
+ * puis doit Ãªtre Ã  chaque nouvelle phase copiÃ© dans
+ * nbTicTacDeLaPhasePrecedante avant d'Ãªtre rÃ©initialisÃ© Ã  0
  */
 int nbTicTacDeLaPhaseEnCours;
 int nbTicTacDeLaPhasePrecedante;
@@ -176,8 +176,8 @@ int erreurAngle;
 int angleEstime;
 
 /**
- * Rend les valeurs PWM para rapport à l'angle spécifié.
- * À appeler lorsque l'angle est connu, c'est à dire, lorsque le moteur
+ * Rend les valeurs PWM para rapport Ã  l'angle spÃ©cifiÃ©.
+ * Ã  appeler lorsque l'angle est connu, c'est Ã  dire, lorsque le moteur
  * est en mouvement.
  * @param alpha Angle, entre 0 et 35.
  * @param puissance, entre 0 et 50.
@@ -202,9 +202,9 @@ void calculeAmplitudesEnMouvement(unsigned char alpha, unsigned char puissance, 
 };
 
 /**
- * Rend les valeurs PWM para rapport à la phase spécifiée.
- * À appeler lorsque seule la phase est connue, c'est à dire lorsque le moteur
- * est à l'arret.
+ * Rend les valeurs PWM para rapport Ã  la phase spÃ©cifiÃ©e.
+ * Ã  appeler lorsque seule la phase est connue, c'est Ã  dire lorsque le moteur
+ * est Ã  l'arret.
  * @param phase Phase, entre 0 et 5.
  * @param ccp Structure pour les valeurs PWM.
  */
@@ -238,9 +238,9 @@ void calculeAmplitudesArret(unsigned char phase, struct CCP *ccp) {
 }
 
 /**
- * Determine la phase en cours d'après les senseurs hall.
+ * Determine la phase en cours d'aprÃ¨s les senseurs hall.
  * @param hall La valeur des senseurs hall: 0xb*****yzx
- * @return Le numéro de phase, entre 1 et 6.
+ * @return Le numÃ©ro de phase, entre 1 et 6.
  */
 unsigned char phaseSelonHall(unsigned char hall) {
     unsigned char c;
@@ -275,13 +275,13 @@ unsigned char phaseSelonHall(unsigned char hall) {
 }
 
 /**
- * Calcule la phase en cours à partir de la lecture des senseurs hall.
- * Effectue également un contrôle de la lecture, pour vérifier si elle est
- * possible. Ceci sert à éviter de compter des rebondissements ou du bruit
+ * Calcule la phase en cours Ã  partir de la lecture des senseurs hall.
+ * Effectue Ã©galement un contrÃ´le de la lecture, pour vÃ©rifier si elle est
+ * possible. Ceci sert Ã  Ã©viter de compter des rebondissements ou du bruit
  * qui affecte la lecture des senseurs.
  * @param hall La valeur des senseurs hall: 0xb*****yzx
  * @param direction Direction actuelle.
- * @return La phase (de 0 à 5) ou un code d'erreur.
+ * @return La phase (de 1 Ã  6) ou un code d'erreur.
  */
 unsigned char phaseSelonHallEtDirection(unsigned char hall, enum DIRECTION direction) {
     unsigned char  phase;
@@ -289,7 +289,7 @@ unsigned char phaseSelonHallEtDirection(unsigned char hall, enum DIRECTION direc
 
     phase = phaseSelonHall(hall);
     
-    // if last_phase == error alors c'est la première fois
+    // if last_phase == error alors c'est la premiÃ¨re fois
     if (ERROR == lastPhase) {
         lastPhase = phase;
     } else {
@@ -349,7 +349,7 @@ unsigned char phaseSelonHallEtDirection(unsigned char hall, enum DIRECTION direc
 }
 
 /**
- * Calcule l'angle correspondant à la phase et à la direction actuelle
+ * Calcule l'angle correspondant Ã  la phase et Ã  la direction actuelle
  * de rotation.
  * @param phase Phase actuelle.
  * @param direction Direction actuelle.
@@ -406,10 +406,10 @@ unsigned char angleSelonPhaseEtDirection(unsigned char phase, enum DIRECTION dir
 }
 
 /**
- * Cette fonction est appelée en réponse à un changement de phase. À
- * cet instant on connait la valeur exacte des deux paramètres.
+ * Cette fonction est appelÃ©e en rÃ©ponse Ã  un changement de phase. Ã 
+ * cet instant on connait la valeur exacte des deux paramÃ¨tres.
  * @param angle Angle exact.
- * @param dureeDePhase Durée de la dernière phase.
+ * @param dureeDePhase Durï¿½e de la derniÃ¨re phase.
  */
 void corrigeAngleEtVitesse(unsigned char angle, int dureeDePhase) {
     nbTicTacDeLaPhasePrecedante = dureeDePhase;
@@ -420,12 +420,12 @@ void corrigeAngleEtVitesse(unsigned char angle, int dureeDePhase) {
 }
 
 /**
- * Cette fonction est appelée à chaque cycle de PWM pour calculer (estimer)
+ * Cette fonction est appelÃ©e Ã  chaque cycle de PWM pour calculer (estimer)
  * l'angle actuel.
- * Le calcul se fait sur la base du dernier angle connu avec précision et
- * de la durée de la dernière phase. Ces valeurs ont été établies par l'appel
- * à 'corrigeAngleEtVitesse'.
- * @return L'angle actuel estimé.
+ * Le calcul se fait sur la base du dernier angle connu avec prÃ©cision et
+ * de la durÃ©e de la derniÃ¨re phase. Ces valeurs ont Ã©tÃ© Ã©tablies par l'appel
+ * Ã  'corrigeAngleEtVitesse'.
+ * @return L'angle actuel estimÃ©.
  */
 unsigned char calculeAngle() {
     unsigned char angle;
@@ -442,18 +442,18 @@ unsigned char calculeAngle() {
 }
 
 /**
- * Etablit la puissance de départ.
- * @param p La puissance de départ.
+ * Etablit la puissance de dÃ©part.
+ * @param p La puissance de dÃ©part.
  */
 void etablitPuissance(unsigned char p) {
     puissanceActuelle = p;
 }
 
 /**
- * Calcule le facteur de puissance nécessaire selon la vitesse demandée.
- * @param dureeDePhase Durée de phase actuelle.
- * @param vitesse Vitesse demandée.
- * @return Puissance à appliquer.
+ * Calcule le facteur de puissance nÃ©cessaire selon la vitesse demandÃ©e.
+ * @param dureeDePhase DurÃ©e de phase actuelle.
+ * @param vitesse Vitesse demandÃ©e.
+ * @return Puissance Ã  appliquer.
  */
 unsigned char calculePuissance(int dureeDePhase, unsigned char vitesse) {
     return 0;
@@ -461,20 +461,20 @@ unsigned char calculePuissance(int dureeDePhase, unsigned char vitesse) {
 
 void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
 
-	/* Attention : La valeur x demandée dépends de l'evenement et du status en cours ! */
+	/* Attention : La valeur x demandÃ©e dÃ©pends de l'evenement et du status en cours ! */
 
     static enum STATUS status = ARRET;
     static char phase  = 0;  // compteur de phase pour le DEMARRAGE.
-    unsigned char angle;        // Utillisé dans DEMARRAGE
+    unsigned char angle;        // UtillisÃ© dans DEMARRAGE
     static char duree_phase = 0;
     static char nbr_phase = 0;
     static char nbr_blocage = 0;
 
     switch (status) {
-        case ARRET: // Le moteur est en arrêt.
+        case ARRET: // Le moteur est en arrÃªt.
             switch (evenement) {
-                case TICTAC: // Fin de période du PWM.
-                    /* Répond aux événements TICTAC avec un CCP minimum. */
+                case TICTAC: // Fin de pÃ©riode du PWM.
+                    /* RÃ©pond aux Ã©vÃ¨nements TICTAC avec un CCP minimum. */
                     ccp -> ccpa = 1;    // Pour la simulation !
                     ccp -> ccpb = 1;
                     ccp -> ccpc = 1;
@@ -482,26 +482,26 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
                 case PHASE: // Le moteur vient de changer de phase.
                     /* Ne fait rien */
                     break;
-                case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
+                case BLOCAGE: // Il s'est ecoulÃ© trop de temps depuis le dernier changement de phase.
                     /* Ne fait rien */
                     break;
-                case VITESSE: // La vitesse demandée a varié.
-                    /* Si une vitesse supérieure à [X] est demandée, elle passe à l'état DEMARRAGE. */
-                    if (x > 10){		// x == vitesse demandée par la commande
+                case VITESSE: // La vitesse demandÃ©e a variÃ©.
+                    /* Si une vitesse supÃ©rieure Ã  [X] est demandÃ©e, elle passe Ã  l'Ã©tat DEMARRAGE. */
+                    if (x > 10){		// x == vitesse demandÃ©e par la commande
                         status = DEMARRAGE;
                     }
                     break;
             }
             break;
-        case DEMARRAGE: // Le moteur est en train de démarrer. Il n'est pas encore possible de calculer sa vitesse.
+        case DEMARRAGE: // Le moteur est en train de dÃ©marrer. Il n'est pas encore possible de calculer sa vitesse.
             switch (evenement) {
-                case TICTAC: // Fin de période du PWM.
-                    phase = phaseSelonHall(x);  // x correspond à la valeur des capteurs Hall.
+                case TICTAC: // Fin de pÃ©riode du PWM.
+                    phase = phaseSelonHall(x);  // x correspond Ã  la valeur des capteurs Hall.
                     calculeAmplitudesArret(phase, ccp);
                     duree_phase++;
                     break;
                 case PHASE: // Le moteur vient de changer de phase.
-                    phase = phaseSelonHallEtDirection(x, AVANT); // x correspond à la valeur des capteurs Hall.
+                    phase = phaseSelonHallEtDirection(x, AVANT); // x correspond Ã  la valeur des capteurs Hall.
 
                     if(phase != ERROR){
                         nbr_phase++;
@@ -514,33 +514,33 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
                         status = EN_MOUVEMENT;
                     }
                     break;
-                case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
+                case BLOCAGE: // Il s'est ecoulÃ© trop de temps depuis le dernier changement de phase.
                     nbr_phase = 0;
                     nbr_blocage++;
                     if(nbr_blocage > 9){
                         status = BLOQUE;
                     }
                     break;
-                case VITESSE: // La vitesse demandée a varié.
+                case VITESSE: // La vitesse demandÃ©e a variÃ©.
                     /* Ne fait rien */
                     break;
             }
             break;
         case EN_MOUVEMENT: // Le moteur est en mouvement. Sa vitesse est stable ou elle varie lentement.
             switch (evenement) {
-                case TICTAC: // Fin de période du PWM.
+                case TICTAC: // Fin de pÃ©riode du PWM.
                     break;
                 case PHASE: // Le moteur vient de changer de phase.
                     break;
-                case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
+                case BLOCAGE: // Il s'est ecoulÃ© trop de temps depuis le dernier changement de phase.
                     break;
-                case VITESSE: // La vitesse demandée a varié.
+                case VITESSE: // La vitesse demandÃ©e a variÃ©.
                     break;
             }
             break;
-        case BLOQUE: // Le moteur est bloqué.
+        case BLOQUE: // Le moteur est bloquÃ©.
             switch (evenement) {
-                case TICTAC: // Fin de période du PWM.
+                case TICTAC: // Fin de pÃ©riode du PWM.
                     ccp -> ccpa = 1;    // Pour la simulation !
                     ccp -> ccpb = 1;
                     ccp -> ccpc = 1;
@@ -548,10 +548,10 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
                 case PHASE: // Le moteur vient de changer de phase.
                     /* Ne fait rien */
                     break;
-                case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
+                case BLOCAGE: // Il s'est ecoulÃ© trop de temps depuis le dernier changement de phase.
                     /* Ne fait rien */
                     break;
-                case VITESSE: // La vitesse demandée a varié.
+                case VITESSE: // La vitesse demandÃ©e a variÃ©.
                     /* Ne fait rien */
                     break;
             }
@@ -561,31 +561,31 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
 
 #ifndef TEST
 /**
- * Interruptions de haute priorité.
- * - Lecture de la télécommande.
+ * Interruptions de haute prioritÃ©.
+ * - Lecture de la tÃ©lÃ©commande.
  */
 void interrupt interruptionsHP() {
 
 }
 
 /**
- * Interruptions de basse priorité.
- * - Met à jour les cycles de travail.
+ * Interruptions de basse prioritÃ©.
+ * - Met Ã  jour les cycles de travail.
  * - Avertit des changements de phase.
- * - Avertit que le moteur est arrêté.
+ * - Avertit que le moteur est arrÃªtÃ©.
  */
 void low_priority interrupt interruptionsBP() {
 
 }
 
 /**
- * Point d'entrée.
+ * Point d'entrÃ©e.
  */
 void main() {
     
-    ANSELA = 0x00; // Désactive les convertisseurs A/D.
-    ANSELB = 0x00; // Désactive les convertisseurs A/D.
-    ANSELC = 0x00; // Désactive les convertisseurs A/D.
+    ANSELA = 0x00; // DÃ©sactive les convertisseurs A/D.
+    ANSELB = 0x00; // DÃ©sactive les convertisseurs A/D.
+    ANSELC = 0x00; // DÃ©sactive les convertisseurs A/D.
 
 
     // configuration de l'horloge
@@ -812,17 +812,17 @@ unsigned char test_calculeAngle() {
     return ft;
 }
 /**
- * Point d'entrée pour les tests unitaires.
+ * Point d'entrÃ©e pour les tests unitaires.
  */
 void main() {
     unsigned char ft = 0;
 
-    // Initialise la EUSART pour pouvoir écrire dans la console
-    // Activez la UART1 dans les propriétés du projet.
+    // Initialise la EUSART pour pouvoir Ã©crire dans la console
+    // Activez la UART1 dans les propriÃ©tÃ©s du projet.
     EUSART_Initialize();
     printf("Lancement des tests...\r\n");
 
-    // Exécution des tests:
+    // Exï¿½cution des tests:
     ft += test_phaseSelonHall();
     ft += test_calculeAmplitudesArret();
 
@@ -833,7 +833,7 @@ void main() {
 
     ft += test_calculePuissance();
 
-    // Affiche le résultat des tests:
+    // Affiche le rÃ©sultat des tests:
     printf("%u tests en erreur\r\n",ft);
     SLEEP();
 }
