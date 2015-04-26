@@ -459,6 +459,22 @@ unsigned char calculePuissance(int dureeDePhase, unsigned char vitesse) {
     return 0;
 }
 
+/**
+ * Calcule la vitesse en fonction de la durée de la pulse de la télécommande.
+ * @param dureePulse Durée de pulse de la télécommande.
+ * @return Vitesse calculée.
+ * TODO ajour du sens ou de vitesse négatives.
+ */
+unsigned char calculeVitesseTelecommande(unsigned int dureePulse) {
+    unsigned char vitesse;
+    dureePulse = dureePulse >> 5;
+    dureePulse -= 93;       // TODO fix negative values.
+    if (dureePulse > 30) dureePulse = 0;
+    vitesse = (unsigned char) dureePulse;
+
+    return vitesse;
+}
+
 void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
 
 	/* Attention : La valeur x demandée dépends de l'evenement et du status en cours ! */
@@ -575,7 +591,24 @@ void interrupt interruptionsHP() {
  * - Avertit que le moteur est arrêté.
  */
 void low_priority interrupt interruptionsBP() {
-
+    unsigned int cptVitesse;
+    if (INTCON3bits.INT1F) {
+        INTCON3bits.INT1F = 0;
+        TMR0L = 0;
+        if (INTCON2bits.INTEDG1) {
+            INTCON2bits.INTEDG1 = 0;    // Flanc descendant
+            TMR1 = 0;                   // mettre TMR1 à 0;
+            T1CONbits.TMR1ON = 1;       // lancer le TMR1
+        } else {
+            T1CONbits.TMR1ON = 0;       //  arrêter le TMR1
+            INTCON2bits.INTEDG1 = 1;    // Flanc montant
+            cptVitesse = TMR1;
+            // calculer la vitesse
+            calculeVitesseTelecommande(cptVitesse);
+            // envoyer evenement vitesse à machine d'état
+            //TODO envoyer commande machine etat
+        }
+    }
 }
 
 /**
@@ -594,15 +627,26 @@ void main() {
 
     OSCTUNEbits.PLLEN = 1;      // utilise la PLL (horloge x 4)
 
+    // active les résistances de tirage sur le port B
+    INTCON2bits.RBPU = 0;
 
-    // initialisation des variables globales
-    etat = DEMARRAGE;
+    // configuration des IO du port B
+    // les bits du port B sont configuré en entrées
+    TRISB = 0xFF;
 
-    etablitPuissance(PUISSANCE_DEPART);
+    // tous les ports du port B ont une pull up.
+    WPUB = 0XFF;
 
-    //configurer et activer le timer pour la lecture de la telecommande
+    //configurer et activer l'interrution pour la lecture de la telecommande
+    // il faut configurer le timer TMR1
+    T1CONbits.TMR1CS = 0b00;    // source = Fosc / 4
+    T1CONbits.T1CKPS = 0b11;    // diviser sur 8
+    T1CONbits.T1RD16 = 1;       // accès en 16 bit direct
 
-
+    // il faut configurer l'interruption INT1
+    INTCON3bits.INT1IE = 1;   // Active l'interruption externe INT1 (RB1)
+    INTCON2bits.INTEDG1 = 1;  // Interruption au flanc montant
+    INTCON3bits.INT1IP = 0;   // Interruption TMR1 basse priorité.
 
     //configurer le port pour lire les sensors hall et les interrupt
     // init la phase et l'angle selon le status des hall
@@ -611,7 +655,18 @@ void main() {
 
     // configurer l'interrupt du PWM (evenement TICTAC)
 
-    // configurer
+    // activer les interruptions
+    // interruption en général
+    RCONbits.IPEN = 1;
+    // interruption haute priorité
+    INTCONbits.GIEH = 1;
+    // interruptions basse priorité
+    INTCONbits.GIEL = 1;
+
+    // initialisation des variables globales
+    etat = DEMARRAGE;
+
+    etablitPuissance(PUISSANCE_DEPART);
 
     // Ne fait plus rien. Les interruptions s'en chargent.
     while(1);
@@ -811,6 +866,28 @@ unsigned char test_calculeAngle() {
 
     return ft;
 }
+unsigned char test_calculeVitesseTelecommande(void) {
+    //TODO change for negative values when implemented
+    unsigned char ft = 0;
+
+    ft += assertEqualsChar(calculeVitesseTelecommande(2000), 0, "VT-2000");
+
+    ft += assertEqualsChar(calculeVitesseTelecommande(2975), 0, "VT-2975");
+
+    ft += assertEqualsChar(calculeVitesseTelecommande(3007), 0, "VT-3007");
+
+    ft += assertEqualsChar(calculeVitesseTelecommande(3008), 1, "VT-3008");
+
+    ft += assertEqualsChar(calculeVitesseTelecommande(3456), 15, "VT-3456");
+
+    ft += assertEqualsChar(calculeVitesseTelecommande(3776), 25, "VT-3776");
+
+    ft += assertEqualsChar(calculeVitesseTelecommande(3936), 30, "VT-3936");
+
+    ft += assertEqualsChar(calculeVitesseTelecommande(4200), 0, "VT-4200");
+
+    return ft;
+}
 /**
  * Point d'entrée pour les tests unitaires.
  */
@@ -832,6 +909,8 @@ void main() {
     ft += test_calculeAmplitudesEnMouvement();
 
     ft += test_calculePuissance();
+
+    ft += test_calculeVitesseTelecommande();
 
     // Affiche le résultat des tests:
     printf("%u tests en erreur\r\n",ft);
