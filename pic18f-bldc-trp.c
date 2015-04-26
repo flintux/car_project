@@ -24,6 +24,8 @@
 
 // Sortie CCP3 sur RC6:
 #pragma config CCP3MX = PORTC6
+// sortie CCP2 sur RC1:
+#pragma config CCP2MX = PORTC1
 
 #define ERROR 255
 #define CYCLE 36
@@ -33,6 +35,8 @@
 #define PUISSANCE_DEPART 5
 
 #define ANGLE_DY 12 // en degré
+
+#define TIMER2_PERIOD   255
 
 /* tableau de contanstes pour les vitesses
  * 65 niveaux et 18 angles de 0 à 170
@@ -605,6 +609,12 @@ void interrupt interruptionsHP() {
 void low_priority interrupt interruptionsBP() {
     unsigned int cptVitesse;
 
+    // vérifier l'interrupt TMR2 (TICTAC)
+    if (PIR1bits.TMR2IF) {
+        PIR1bits.TMR2IF = 0;
+        // TODO traiter le TICTAC
+    }
+
     // vérifier les interruptions INT1
     if (INTCON3bits.INT1F) {
         INTCON3bits.INT1F = 0;
@@ -666,11 +676,31 @@ void main() {
     INTCONbits.RBIE = 1;        // Active les interruptions IOC3:IOC0
     INTCON2bits.RBIP = 1;       // interruptions haute priorité
 
-    // init la phase et l'angle selon le status des hall
-
-    // configurer la sortie des PWM
-
     // configurer l'interrupt du PWM (evenement TICTAC)
+    // Active le temporisateur 2:
+    T2CONbits.T2CKPS = 0;   // pas de diviseur pour le TMR
+    T2CONbits.T2OUTPS = 0;  // pas de diviseur pour l'interrupt
+    PR2 = TIMER2_PERIOD;    // charge le timer à 255
+    T2CONbits.TMR2ON = 1;   // active le temporisateur
+    // activer les interrupt TMR2
+    PIE1bits.TMR2IE = 1;    // active l'interrupt TMR2
+    IPR1bits.TMR2IP = 1;    // interrupt haute priorité
+
+    // Active le générateur CCP1:
+    CCP1CONbits.P1M = 0b00;         // PWM générique TODO changer en demi pont
+    CCP1CONbits.CCP1M = 0b1100;     // P1A et P1B actifs haut
+    CCPTMRS0bits.C1TSEL = 0b00;     // TMR2 source
+
+
+    CCP2CONbits.P2M0 = 0;           // PWM générique
+    CCP2CONbits.P2M1 = 1;
+    CCP2CONbits.CCP2M = 0b1100;     // P2A et P2B actifs haut
+    CCPTMRS0bits.C2TSEL = 0b00;     // TMR2 source
+
+    CCP3CONbits.P3M0 = 0;           // PWM générique
+    CCP3CONbits.P3M1 = 1;
+    CCP3CONbits.CCP3M = 0b1100;     // P3A et P3B actifs haut
+    CCPTMRS0bits.C3TSEL = 0b00;     // TMR2 source
 
     // activer les interruptions
     // interruption en général
