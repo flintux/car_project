@@ -48,3 +48,7 @@ documentation/rapport/*.log
 documentation/rapport/*.pdf
 documentation/rapport/*.gz
 documentation/rapport/*.toc
+
+#proteus files
+*.PWI
+*.SDF
