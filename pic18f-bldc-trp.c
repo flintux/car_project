@@ -210,7 +210,7 @@ void calculeAmplitudesEnMouvement(unsigned char alpha, unsigned char puissance, 
  * Rend les valeurs PWM para rapport à la phase spécifiée.
  * à appeler lorsque seule la phase est connue, c'est à dire lorsque le moteur
  * est à l'arret.
- * @param phase Phase, entre 0 et 5.
+ * @param phase Phase, entre 1 et 6.
  * @param ccp Structure pour les valeurs PWM.
  */
 void calculeAmplitudesArret(unsigned char phase, struct CCP *ccp) {
@@ -414,7 +414,7 @@ unsigned char angleSelonPhaseEtDirection(unsigned char phase, enum DIRECTION dir
  * Cette fonction est appelée en réponse à un changement de phase. à
  * cet instant on connait la valeur exacte des deux paramètres.
  * @param angle Angle exact.
- * @param dureeDePhase Dur�e de la dernière phase.
+ * @param dureeDePhase Durée de la dernière phase.
  */
 void corrigeAngleEtVitesse(unsigned char angle, int dureeDePhase) {
     nbTicTacDeLaPhasePrecedante = dureeDePhase;
