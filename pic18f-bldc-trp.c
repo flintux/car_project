@@ -30,9 +30,13 @@
 #define ERROR 255
 #define CYCLE 36
 
-#define PUISSANCE_MAX 40
+#define PUISSANCE_MAX 50
 #define PUISSANCE_ARRET 0
-#define PUISSANCE_DEPART 5
+#define PUISSANCE_DEPART 50
+
+#define NB_PHASES_DEMARRAGE 6
+
+#define NB_BLOCAGES_POUR_ARRET  9
 
 #define ANGLE_DY 12 // en degré
 
@@ -184,10 +188,10 @@ unsigned char vitesseActuelle;
  * puis doit être à chaque nouvelle phase copié dans
  * nbTicTacDeLaPhasePrecedante avant d'être réinitialisé à 0
  */
-int nbTicTacDeLaPhaseEnCours;
-int nbTicTacDeLaPhasePrecedante;
-int erreurAngle;
-int angleEstime;
+int nbTicTacDeLaPhaseEnCours = 0;
+int nbTicTacDeLaPhasePrecedante = 0;
+int erreurAngle = 1000;
+int angleEstime = 0;
 
 /**
  * Rend les valeurs PWM para rapport à l'angle spécifié.
@@ -248,7 +252,8 @@ void calculeAmplitudesArret(unsigned char phase, struct CCP *ccp) {
             alpha = 0;
             break;
     }
-    calculeAmplitudesEnMouvement(alpha, PUISSANCE_ARRET, ccp);
+    //calculeAmplitudesEnMouvement(alpha, PUISSANCE_ARRET, ccp);
+    calculeAmplitudesEnMouvement(alpha, PUISSANCE_DEPART, ccp);
 }
 
 /**
@@ -459,6 +464,7 @@ unsigned char calculeAngle() {
         
     }
     angle = angleActuel + angleEstime;
+    if (angle > 35) angle = 0;
     return angle;
 }
 
@@ -498,10 +504,10 @@ unsigned char calculeVitesseTelecommande(unsigned int dureePulse) {
 
 void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
 
-	/* Attention : La valeur x demandée dépends de l'evenement et du status en cours ! */
+    /* Attention : La valeur x demandée dépends de l'evenement et du status en cours ! */
     static char phase  = 0;  // compteur de phase pour le DEMARRAGE.
     unsigned char angle;        // Utillisé dans DEMARRAGE
-    static char duree_phase = 0;
+    static unsigned int duree_phase = 0;
     static char nbr_phase = 0;
     static char nbr_blocage = 0;
 
@@ -531,22 +537,22 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
         case DEMARRAGE: // Le moteur est en train de démarrer. Il n'est pas encore possible de calculer sa vitesse.
             switch (evenement) {
                 case TICTAC: // Fin de période du PWM.
-                    phase = phaseSelonHall(x);  // x correspond à la valeur des capteurs Hall.
-                    calculeAmplitudesArret(phase, ccp);
+                    //calculeAmplitudesArret(phaseActuelle, ccp);
                     duree_phase++;
+                    angle = calculeAngle();
+                    calculeAmplitudesEnMouvement(angle, PUISSANCE_DEPART, ccp);
                     break;
                 case PHASE: // Le moteur vient de changer de phase.
-                    phase = phaseSelonHallEtDirection(x, AVANT); // x correspond à la valeur des capteurs Hall.
+                    phaseActuelle = phaseSelonHallEtDirection(x, AVANT); // x correspond à la valeur des capteurs Hall.
 
-                    if(phase != ERROR){
+                    if(phaseActuelle != ERROR){
                         nbr_phase++;
                     }
 
-                    if(nbr_phase > 5){
-                        angle = angleSelonPhaseEtDirection(phase, AVANT);
+                    if(nbr_phase > NB_PHASES_DEMARRAGE){
+                        angle = angleSelonPhaseEtDirection(phaseActuelle, AVANT);
                         corrigeAngleEtVitesse(angle, duree_phase);
-						duree_phase = 0;
-
+			duree_phase = 0;
                         status = EN_MOUVEMENT;
                     }
                     break;
@@ -581,7 +587,7 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
                 case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
 					nbr_phase = 0;
 					nbr_blocage++;
-					if (nbr_blocage > 9){
+					if (nbr_blocage > NB_BLOCAGES_POUR_ARRET){
 						status = BLOQUE;
 					}
                     break;
@@ -692,7 +698,7 @@ void main() {
     OSCTUNEbits.PLLEN = 1;      // utilise la PLL (horloge x 4)
 
     // active les résistances de tirage sur le port B
-    INTCON2bits.RBPU = 0;
+    INTCON2bits.RBPU = 1;
 
     // configuration des IO du port B
     // les bits du port B sont configuré en entrées
@@ -700,7 +706,27 @@ void main() {
     TRISC = 0x00;
 
     // tous les ports du port B ont une pull up.
-    WPUB = 0XFF;
+    WPUB = 0X00;
+
+
+        // initialisation des variables globales
+    ccpGlobal.ccpa = 1;
+    ccpGlobal.ccpb = 1;
+    ccpGlobal.ccpc = 1;
+
+    phaseActuelle = phaseSelonHall(PORTB >> 4);
+    angleActuel = angleSelonPhaseEtDirection(phaseActuelle, AVANT);
+
+    CCPR1L = 1;
+    CCPR2L = 1;
+    CCPR3L = 1;
+
+    etablitPuissance(PUISSANCE_DEPART);
+    status = DEMARRAGE;
+
+    // on va assumer qu'on était a vitesse minimale
+    nbTicTacDeLaPhasePrecedante = erreurAngle;
+    
 
     //configurer et activer l'interrution pour la lecture de la telecommande
     // il faut configurer le timer TMR1
@@ -751,16 +777,7 @@ void main() {
     // interruptions basse priorité
     INTCONbits.GIEL = 1;
 
-    // initialisation des variables globales
-    ccpGlobal.ccpa = 1;
-    ccpGlobal.ccpb = 1;
-    ccpGlobal.ccpc = 1;
 
-    CCPR1L = 100;
-    CCPR2L = 200;
-    CCPR3L = 255;
-
-    etablitPuissance(PUISSANCE_DEPART);
 
     // Ne fait plus rien. Les interruptions s'en chargent.
     while(1);
