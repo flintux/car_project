@@ -30,7 +30,7 @@ int main() {
 	printf("duree de la derniere phase [en nb de TIC TAC]: ");
 	xf = saisieEntier();
 	yi = 0;
-	yf = 6; // 6 = 60° en une phase
+	yf = 12; // 6 = 60° en une phase
 	dx = xf - xi;
 	dy = yf - yi;
 	dy *= 2;
@@ -44,7 +44,7 @@ int main() {
 		if (e < 0)
 		{
 			yi++;
-			e += dx;
+			e += dx*2;
 		}
 		printf("y = %d -> TICTAC No %d\n", yi, xi);//
 	}
