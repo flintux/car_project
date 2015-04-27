@@ -50,7 +50,8 @@
   commentstyle=\itshape\color{purple!40!black},
 }
 
-\lstset{escapechar=@,style=customc}
+\lstset{escapechar=@,style=customc, captionpos=b, abovecaptionskip=\bigskipamount}
+
 
 \setlength\parindent{0pt}  % no indent on new paragraphs
 \renewcommand{\arraystretch}{1.5} % used to enlarge tables
@@ -90,21 +91,25 @@ Lors des interruptions, les événements sont envoyés à la machine a états af
 
   \subsection{Machine a états}
   \begin{figure}[H]
-  \includegraphics[width=12cm]{state_machine}
-  \centering
+    \centering
+    \includegraphics[width=16cm]{state_machine}
+    \caption{Machine à états}
+    \label{fig:state_machine}
   \end{figure}
 
   \subsection{Interfaces}
   \begin{figure}[H]
-  \includegraphics[width=12cm]{main_view_interfaces}
-  \centering
+    \centering
+    \includegraphics[width=16cm]{main_view_interfaces}
+    \caption{Interfaces}
+    \label{fig:interfaces}
   \end{figure}
 
 \section{Calculs d'horloge et des temporisateurs}
   \subsection{Horloge principale}
   L'horloge principale utilisée sera l'horloge interne du PIC à 64MHz.
   Pour cela il faut la configuration suivante:
-  \begin{lstlisting}
+  \begin{lstlisting}[caption=Configuration de l'horloge principale, label=lst:clock_config]
 
     #pragma config FOSC = INTIO67  // Oscillateur interne, ports A6 et A7 comme IO.
     #pragma config IESO = OFF      // Pas d'embrouilles avec l'osc. au démarrage.
@@ -133,7 +138,7 @@ Lors des interruptions, les événements sont envoyés à la machine a états af
   Nous utilisons le timer TMR2 pour générer les signaux.
   La configuration du timer est comme suit:
   
-  \begin{lstlisting}
+  \begin{lstlisting}[caption=Configuration du Timer TMR2, label=lst:tmr2_config]
   
     // configurer l'interrupt du PWM (evenement TICTAC)
     // Active le temporisateur 2:
@@ -168,7 +173,7 @@ Lors des interruptions, les événements sont envoyés à la machine a états af
   
   Nous avons des vitesses entre -30 et +30 répartis entre 1ms et 2ms.
   Nous pouvons donc calculer la résolution minimale du timer TMR1.
-  $$durée_{min} = \frac{durée \ pulse}{nombre\ de\ vitesses} = \frac{1 \cdot 10^{-3}}{61} = 16.39 \ [\mu s]$$
+  $$durée_{min} = \frac{durée\ pulse}{nombre\ de\ vitesses} = \frac{1 \cdot 10^{-3}}{61} = 16.39 \ [\mu s]$$
 
   La fréquence minimale pour le TMR1 est de:
   $$f_{min} = \frac{1}{durée_{min}} = \frac{1}{16.39 \cdot 10^{-6}} = 61000\ [Hz]$$
@@ -184,6 +189,21 @@ Lors des interruptions, les événements sont envoyés à la machine a états af
     Le timer TMR1 étant un timer 16 bit, nous pouvons compter jusqu'à $2^{16} = 65536$, avec le pas maximum nous avons une durée maximale de: $pas_{max} \cdot nb_{pas} = 500 \cdot 10^{-9} \cdot 65536 = 32.768\ [ms]$
     
     Le pas maximum nous permet donc une résolution assez grande ainsi que un comptage qui permet de lire le PWM issu de la télécommande.
+    
+    \begin{lstlisting}[caption=Configuration du TMR1, label=lst:tmr1_config]
+    
+    //configurer et activer l'interrution pour la lecture de la telecommande
+    // il faut configurer le timer TMR1
+    T1CONbits.TMR1CS = 0b00;    // source = Fosc / 4
+    T1CONbits.T1CKPS = 0b11;    // diviser sur 8
+    T1CONbits.T1RD16 = 1;       // accès en 16 bit direct
+
+    // il faut configurer l'interruption INT1
+    INTCON3bits.INT1IE = 1;   // Active l'interruption externe INT1 (RB1)
+    INTCON2bits.INTEDG1 = 1;  // Interruption au flanc montant
+    INTCON3bits.INT1IP = 0;   // Interruption TMR1 basse priorité.
+    
+    \end{lstlisting}
     
     \subsubsection{Calcul de la vitesse en fonction du timer}
     Nous devons calculer la vitesse en fonction de la durée de la pulse.
