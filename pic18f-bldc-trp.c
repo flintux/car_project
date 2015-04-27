@@ -164,7 +164,8 @@ enum STATUS {
  *
  */
 
-enum STATUS etat;
+enum STATUS status = ARRET;
+struct CCP ccpGlobal;
 unsigned char phaseActuelle;
 unsigned char puissanceActuelle;
 unsigned char angleActuel;
@@ -482,8 +483,6 @@ unsigned char calculeVitesseTelecommande(unsigned int dureePulse) {
 void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
 
 	/* Attention : La valeur x demandée dépends de l'evenement et du status en cours ! */
-
-    static enum STATUS status = ARRET;
     static char phase  = 0;  // compteur de phase pour le DEMARRAGE.
     unsigned char angle;        // Utillisé dans DEMARRAGE
     static char duree_phase = 0;
@@ -586,6 +585,12 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
  */
 void interrupt interruptionsHP() {
     unsigned char hall;
+
+    // vérifier l'interrupt TMR2 (TICTAC)
+    if (PIR1bits.TMR2IF) {
+        PIR1bits.TMR2IF = 0;
+        machine(TICTAC, NULL, &ccpGlobal);
+    }
     
     // vérifier les interruptions hall
     if (INTCONbits.RBIF) {
@@ -595,7 +600,7 @@ void interrupt interruptionsHP() {
         // décaller pour avoir les capteurs en LSB
         hall = hall >> 4;
         // TODO rajouter le bon pointeur ccp
-        machine(PHASE, hall, NULL);
+        machine(PHASE, hall, &ccpGlobal);
     }
 
 }
@@ -608,12 +613,7 @@ void interrupt interruptionsHP() {
  */
 void low_priority interrupt interruptionsBP() {
     unsigned int cptVitesse;
-
-    // vérifier l'interrupt TMR2 (TICTAC)
-    if (PIR1bits.TMR2IF) {
-        PIR1bits.TMR2IF = 0;
-        // TODO traiter le TICTAC
-    }
+    unsigned char vitesse;
 
     // vérifier les interruptions INT1
     if (INTCON3bits.INT1F) {
@@ -628,9 +628,9 @@ void low_priority interrupt interruptionsBP() {
             INTCON2bits.INTEDG1 = 1;    // Flanc montant
             cptVitesse = TMR1;
             // calculer la vitesse
-            calculeVitesseTelecommande(cptVitesse);
+            vitesse = calculeVitesseTelecommande(cptVitesse);
             // envoyer evenement vitesse à machine d'état
-            //TODO envoyer commande machine etat
+            machine(VITESSE, vitesse, &ccpGlobal);
         }
     }
 }
@@ -657,6 +657,7 @@ void main() {
     // configuration des IO du port B
     // les bits du port B sont configuré en entrées
     TRISB = 0xFF;
+    TRISC = 0x00;
 
     // tous les ports du port B ont une pull up.
     WPUB = 0XFF;
@@ -711,7 +712,13 @@ void main() {
     INTCONbits.GIEL = 1;
 
     // initialisation des variables globales
-    etat = DEMARRAGE;
+    ccpGlobal.ccpa = 1;
+    ccpGlobal.ccpb = 1;
+    ccpGlobal.ccpc = 1;
+
+    CCPR1L = 100;
+    CCPR2L = 200;
+    CCPR3L = 255;
 
     etablitPuissance(PUISSANCE_DEPART);
 
