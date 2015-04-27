@@ -109,7 +109,10 @@ const unsigned char TAB_VITESSE[65][18] = {
 {1, 45, 88, 128, 164, 196, 221, 240, 252, 255, 252, 240, 221, 196, 164, 128, 88, 45}
 };
 
-const int TABVITESSE[30] = {5000, 979, 543, 375, 287, 232, 195, 168, 147, 131, 118, 108, 99,
+/*
+ * cycles de tictac par phase en fonction de la vitesse, vitesse de 1 à 30
+ */
+const int CYCLES_TICTAC_VITESSE[30] = {5000, 979, 543, 375, 287, 232, 195, 168, 147, 131, 118, 108, 99,
     92, 85, 79, 75, 70, 66, 63, 60, 57, 54, 52, 50, 48, 46, 44, 43, 41};
 
 
@@ -426,7 +429,7 @@ unsigned char angleSelonPhaseEtDirection(unsigned char phase, enum DIRECTION dir
  */
 void corrigeAngleEtVitesse(unsigned char angle, int dureeDePhase) {
     char cpt = 0;
-    while(dureeDePhase > TABVITESSE[29-cpt]| dureeDePhase > 5000)
+    while(dureeDePhase > CYCLES_TICTAC_VITESSE[29-cpt]| dureeDePhase > 5000)
     {cpt++;}
     vitesseActuel = cpt++;
     nbTicTacDeLaPhasePrecedante = dureeDePhase;
@@ -497,7 +500,7 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
 	/* Attention : La valeur x demandée dépends de l'evenement et du status en cours ! */
     static char phase  = 0;  // compteur de phase pour le DEMARRAGE.
     unsigned char angle;        // Utillisé dans DEMARRAGE
-	static char duree_phase = 0;
+    static char duree_phase = 0;
     static char nbr_phase = 0;
     static char nbr_blocage = 0;
 
