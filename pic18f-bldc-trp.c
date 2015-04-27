@@ -494,7 +494,8 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
 	/* Attention : La valeur x demandée dépends de l'evenement et du status en cours ! */
     static char phase  = 0;  // compteur de phase pour le DEMARRAGE.
     unsigned char angle;        // Utillisé dans DEMARRAGE
-    static char duree_phase = 0;
+	static char puissance = 6;
+	static char duree_phase = 0;
     static char nbr_phase = 0;
     static char nbr_blocage = 0;
 
@@ -538,6 +539,7 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
                     if(nbr_phase > 5){
                         angle = angleSelonPhaseEtDirection(phase, AVANT);
                         corrigeAngleEtVitesse(angle, duree_phase);
+						duree_phase = 0;
 
                         status = EN_MOUVEMENT;
                     }
@@ -557,12 +559,30 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
         case EN_MOUVEMENT: // Le moteur est en mouvement. Sa vitesse est stable ou elle varie lentement.
             switch (evenement) {
                 case TICTAC: // Fin de période du PWM.
+					/* La machine doit produire les signaux synchronisés avec le mouvement du moteur. */
+					duree_phase++;
+					angle = calculeAngle();
+					calculeAmplitudesEnMouvement(angle, puissance, ccp);
                     break;
                 case PHASE: // Le moteur vient de changer de phase.
+					/* À ce moment la machine peut savoir quel est l'angle exact, quelle est la durée de la dernière phase.
+					Elle profite aussi pour corriger la puissance à appliquer: */
+					phase = phaseSelonHallEtDirection(x, AVANT);	// x correspond à la valeur des capteurs Hall.
+					corrigeAngleEtVitesse(angle, duree_phase);
+					puissance = calculePuissance(duree_phase, x);	//x == vitesse demandée par la commande
+					duree_phase = 0;
                     break;
                 case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
+					nbr_phase = 0;
+					nbr_blocage++;
+					if (nbr_blocage > 9){
+						status = BLOQUE;
+					}
                     break;
                 case VITESSE: // La vitesse demandée a varié.
+					angle = calculeAngle();
+					corrigeAngleEtVitesse(angle, duree_phase);
+					calculeAmplitudesEnMouvement(angle, puissance, ccp);
                     break;
             }
             break;
