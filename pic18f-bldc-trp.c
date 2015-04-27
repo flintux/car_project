@@ -36,6 +36,7 @@
 
 #define ANGLE_DY 12 // en degré
 
+// periode pour les PWM
 #define TIMER2_PERIOD   255
 
 /* tableau de contanstes pour les vitesses
@@ -176,7 +177,7 @@ struct CCP ccpGlobal;
 unsigned char phaseActuelle;
 unsigned char puissanceActuelle;
 unsigned char angleActuel;
-unsigned char vitesseActuel;
+unsigned char vitesseActuelle;
 
 /*
  * nbTicTacDeLaPhaseEnCours doit être incrémentée à chaque fin de pwm
@@ -429,9 +430,9 @@ unsigned char angleSelonPhaseEtDirection(unsigned char phase, enum DIRECTION dir
  */
 void corrigeAngleEtVitesse(unsigned char angle, int dureeDePhase) {
     char cpt = 0;
-    while(dureeDePhase > CYCLES_TICTAC_VITESSE[29-cpt]| dureeDePhase > 5000)
+    while(dureeDePhase < CYCLES_TICTAC_VITESSE[cpt] && cpt < 29)
     {cpt++;}
-    vitesseActuel = cpt++;
+    vitesseActuelle = cpt++;
     nbTicTacDeLaPhasePrecedante = dureeDePhase;
     nbTicTacDeLaPhaseEnCours = 0;
     erreurAngle = nbTicTacDeLaPhasePrecedante;
@@ -574,7 +575,7 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
 					Elle profite aussi pour corriger la puissance à appliquer: */
 					phase = phaseSelonHallEtDirection(x, AVANT);	// x correspond à la valeur des capteurs Hall.
 					corrigeAngleEtVitesse(angle, duree_phase);
-					puissanceActuelle = calculePuissance(duree_phase, vitesseActuel);
+					puissanceActuelle = calculePuissance(duree_phase, vitesseActuelle);
 					duree_phase = 0;
                     break;
                 case BLOCAGE: // Il s'est ecoulé trop de temps depuis le dernier changement de phase.
@@ -623,7 +624,12 @@ void interrupt interruptionsHP() {
     // vérifier l'interrupt TMR2 (TICTAC)
     if (PIR1bits.TMR2IF) {
         PIR1bits.TMR2IF = 0;
+        // envoyer event a MaE
         machine(TICTAC, NULL, &ccpGlobal);
+        // mettre a jour les cycles PWM
+        CCPR1L = ccpGlobal.ccpa;
+        CCPR2L = ccpGlobal.ccpb;
+        CCPR3L = ccpGlobal.ccpc;
     }
     
     // vérifier les interruptions hall
