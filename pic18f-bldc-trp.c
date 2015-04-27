@@ -109,6 +109,10 @@ const unsigned char TAB_VITESSE[65][18] = {
 {1, 45, 88, 128, 164, 196, 221, 240, 252, 255, 252, 240, 221, 196, 164, 128, 88, 45}
 };
 
+const int TABVITESSE[30] = {5000, 979, 543, 375, 287, 232, 195, 168, 147, 131, 118, 108, 99,
+    92, 85, 79, 75, 70, 66, 63, 60, 57, 54, 52, 50, 48, 46, 44, 43, 41};
+
+
 struct CCP {
     unsigned char ccpa;
     unsigned char ccpb;
@@ -169,6 +173,7 @@ struct CCP ccpGlobal;
 unsigned char phaseActuelle;
 unsigned char puissanceActuelle;
 unsigned char angleActuel;
+unsigned char vitesseActuel;
 
 /*
  * nbTicTacDeLaPhaseEnCours doit être incrémentée à chaque fin de pwm
@@ -417,6 +422,10 @@ unsigned char angleSelonPhaseEtDirection(unsigned char phase, enum DIRECTION dir
  * @param dureeDePhase Durée de la dernière phase.
  */
 void corrigeAngleEtVitesse(unsigned char angle, int dureeDePhase) {
+    char cpt = 0;
+    while(dureeDePhase > TABVITESSE[29-cpt]| dureeDePhase > 5000)
+    {cpt++;}
+    vitesseActuel = cpt++;
     nbTicTacDeLaPhasePrecedante = dureeDePhase;
     nbTicTacDeLaPhaseEnCours = 0;
     erreurAngle = nbTicTacDeLaPhasePrecedante*2;
