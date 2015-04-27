@@ -295,7 +295,7 @@ unsigned char phaseSelonHall(unsigned char hall) {
  */
 unsigned char phaseSelonHallEtDirection(unsigned char hall, enum DIRECTION direction) {
     unsigned char  phase;
-    unsigned char lastPhase = ERROR;
+    static unsigned char lastPhase = ERROR;
 
     phase = phaseSelonHall(hall);
     
@@ -411,6 +411,9 @@ unsigned char angleSelonPhaseEtDirection(unsigned char phase, enum DIRECTION dir
                 angle = 0;
             }
             break;
+        default:
+            angle = ERROR;
+            break;
     }
     return angle;
 }
@@ -428,7 +431,7 @@ void corrigeAngleEtVitesse(unsigned char angle, int dureeDePhase) {
     vitesseActuel = cpt++;
     nbTicTacDeLaPhasePrecedante = dureeDePhase;
     nbTicTacDeLaPhaseEnCours = 0;
-    erreurAngle = nbTicTacDeLaPhasePrecedante*2;
+    erreurAngle = nbTicTacDeLaPhasePrecedante;
     angleEstime = 0;
     angleActuel = angle;
 }
