@@ -52,3 +52,4 @@ documentation/rapport/*.toc
 #proteus files
 *.PWI
 *.SDF
+*.DBK
