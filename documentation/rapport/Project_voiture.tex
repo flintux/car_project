@@ -27,6 +27,31 @@
   {€}{{\EUR}}1 {£}{{\pounds}}1
 }
 
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  %frame=L,
+  xleftmargin=\parindent,
+  language=C,
+  showstringspaces=false,
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\bfseries\color{green!40!black},
+  commentstyle=\itshape\color{purple!40!black},
+  identifierstyle=\color{blue},
+  stringstyle=\color{orange},
+}
+
+\lstdefinestyle{customasm}{
+  belowcaptionskip=1\baselineskip,
+  frame=L,
+  xleftmargin=\parindent,
+  language=[x86masm]Assembler,
+  basicstyle=\footnotesize\ttfamily,
+  commentstyle=\itshape\color{purple!40!black},
+}
+
+\lstset{escapechar=@,style=customc}
+
 \setlength\parindent{0pt}  % no indent on new paragraphs
 \renewcommand{\arraystretch}{1.5} % used to enlarge tables
 
@@ -58,8 +83,6 @@ Project Voiture\\
 	Le but est de contrôler un moteur BLDC grâce à un PIC.
 	Le moteur peut tourner entre 125 rpm et 15000 rpm.
 
-	
-	
 \section{Conception du programme principal}
 Le programme sera basé sur des interruptions et une machine a états.
 Après les initialisations, le programme ne fait rien en dehors des interruptions.
@@ -107,6 +130,23 @@ Lors des interruptions, les événements sont envoyés à la machine a états af
   $$F_{PWM} = \frac{64000000}{4 \cdot 1 \cdot 256} = 62500 = 62.5\ [kHz]$$
   Nous avons donc 62500 cycles de PWM par seconde.
   
+  Nous utilisons le timer TMR2 pour générer les signaux.
+  La configuration du timer est comme suit:
+  
+  \begin{lstlisting}
+  
+    // configurer l'interrupt du PWM (evenement TICTAC)
+    // Active le temporisateur 2:
+    T2CONbits.T2CKPS = 0;   // pas de diviseur pour le TMR
+    T2CONbits.T2OUTPS = 0;  // pas de diviseur pour l'interrupt
+    PR2 = TIMER2_PERIOD;    // charge le timer à 255
+    T2CONbits.TMR2ON = 1;   // active le temporisateur
+    // activer les interrupt TMR2
+    PIE1bits.TMR2IE = 1;    // active l'interrupt TMR2
+    IPR1bits.TMR2IP = 1;    // interrupt haute priorité
+  
+  \end{lstlisting}
+  
   \subsection{Cycles selon vitesse}
   Nous avons 6 phases par tour.
   A vitesse maximale de 15000 rpm nous avons:
@@ -152,6 +192,9 @@ Lors des interruptions, les événements sont envoyés à la machine a états af
     Pour chaque pas de vitesse nous avons:
     $$\frac{pas_{vitesse}}{pas_{timer}} =  \frac{16.36 \cdot 10^{-6}}{500 \cdot 10^{-9}}=32.78$$
     Le compteur doit donc incrémenter de 32 pour avancer d'un pas dans la vitesse. Cela nous permet de diviser la valeur du compteur par 32 pour avoir le nombre de pas de vitesse et une division par 32 est au fait un décalage de 5 sur la gauche qui est facile à faire.
+    
+    Voir fichier Tableau\_vitesse\_télécommande.xlsx pour les détails de la conversion.
+    
     
     \subsection{Autre méthode possible}
     Une autre méthode pour mesurer le PWM de la télécommande consisterait à utiliser le timer TMR1 pour compteur chaque pas de vitesse, c'est à dire nous utiliserions le timer pour générer des interruptions toutes les 15.6 $\mu s$ et un simple compteur serait incrémenté. Cela impliquerait une nouvelle interruption.
