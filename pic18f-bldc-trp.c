@@ -26,17 +26,19 @@
 #pragma config CCP3MX = PORTC6
 // sortie CCP2 sur RC1:
 #pragma config CCP2MX = PORTC1
+#pragma config P2BMX = PORTC0
 
 #define ERROR 255
 #define CYCLE 36
 
-#define PUISSANCE_MAX 50
+#define PUISSANCE_MAX 25
 #define PUISSANCE_ARRET 0
-#define PUISSANCE_DEPART 50
+#define PUISSANCE_DEPART 6
+#define VITESSE_DEPART  6
 
-#define NB_PHASES_DEMARRAGE 6
+#define NB_PHASES_DEMARRAGE 250
 
-#define NB_BLOCAGES_POUR_ARRET  9
+#define NB_BLOCAGES_POUR_ARRET  20
 
 #define ANGLE_DY 12 // en degré
 
@@ -46,8 +48,14 @@
 /* tableau de contanstes pour les vitesses
  * 65 niveaux et 18 angles de 0 à 170
  */
+
+const unsigned char VITESSE_TEST[3][6] = {
+    {30, 15, 0, 0, 0, 15},
+    {0, 15, 30, 15, 0, 0},
+    {0, 0, 0, 15, 30, 15}
+};
 const unsigned char TAB_VITESSE[65][18] = {
-{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 {1, 1, 2, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 2, 2, 1},
 {1, 2, 3, 4, 6, 7, 7, 8, 8, 8, 8, 8, 7, 7, 6, 4, 3, 2},
 {1, 3, 5, 6, 8, 10, 11, 12, 12, 12, 12, 12, 11, 10, 8, 6, 5, 3},
@@ -117,7 +125,7 @@ const unsigned char TAB_VITESSE[65][18] = {
 /*
  * cycles de tictac par phase en fonction de la vitesse, vitesse de 1 à 30
  */
-const int CYCLES_TICTAC_VITESSE[30] = {5000, 979, 543, 375, 287, 232, 195, 168, 147, 131, 118, 108, 99,
+const int CYCLES_TICTAC_VITESSE[30] = {1250, 979, 543, 375, 287, 232, 195, 168, 147, 131, 118, 108, 99,
     92, 85, 79, 75, 70, 66, 63, 60, 57, 54, 52, 50, 48, 46, 44, 43, 41};
 
 
@@ -182,6 +190,7 @@ unsigned char phaseActuelle;
 unsigned char puissanceActuelle;
 unsigned char angleActuel;
 unsigned char vitesseActuelle;
+unsigned char lastHall;
 
 /*
  * nbTicTacDeLaPhaseEnCours doit être incrémentée à chaque fin de pwm
@@ -190,9 +199,14 @@ unsigned char vitesseActuelle;
  */
 int nbTicTacDeLaPhaseEnCours = 0;
 int nbTicTacDeLaPhasePrecedante = 0;
-int erreurAngle = 1000;
+int erreurAngle;
 int angleEstime = 0;
 
+
+unsigned char getHall(void)
+{
+    return ((PORTA >> 4) & 0x07);
+}
 /**
  * Rend les valeurs PWM para rapport à l'angle spécifié.
  * à appeler lorsque l'angle est connu, c'est à dire, lorsque le moteur
@@ -269,22 +283,22 @@ unsigned char phaseSelonHall(unsigned char hall) {
     switch(c)
     {
         case 0b001:
-            phase = 1;
+            phase = 6;
             break;
         case 0b011:
-            phase = 2;
-            break;
-        case 0b010:
-            phase = 3;
-            break;
-        case 0b110:
-            phase = 4;
-            break;
-        case 0b100:
             phase = 5;
             break;
+        case 0b010:
+            phase = 4;
+            break;
+        case 0b110:
+            phase = 3;
+            break;
+        case 0b100:
+            phase = 2;
+            break;
         case 0b101:
-            phase = 6;
+            phase = 1;
             break;
         default:
             phase = ERROR;
@@ -516,9 +530,9 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
             switch (evenement) {
                 case TICTAC: // Fin de période du PWM.
                     /* Répond aux évènements TICTAC avec un CCP minimum. */
-                    ccp -> ccpa = 1;    // Pour la simulation !
-                    ccp -> ccpb = 1;
-                    ccp -> ccpc = 1;
+                    ccp -> ccpa = 0;    // Pour la simulation !
+                    ccp -> ccpb = 0;
+                    ccp -> ccpc = 0;
                     break;
                 case PHASE: // Le moteur vient de changer de phase.
                     /* Ne fait rien */
@@ -601,9 +615,9 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
         case BLOQUE: // Le moteur est bloqué.
             switch (evenement) {
                 case TICTAC: // Fin de période du PWM.
-                    ccp -> ccpa = 1;    // Pour la simulation !
-                    ccp -> ccpb = 1;
-                    ccp -> ccpc = 1;
+                    ccp -> ccpa = 0;    // Pour la simulation !
+                    ccp -> ccpb = 0;
+                    ccp -> ccpc = 0;
                     break;
                 case PHASE: // Le moteur vient de changer de phase.
                     /* Ne fait rien */
@@ -626,28 +640,54 @@ void machine(enum EVENEMENT evenement, unsigned char x, struct CCP *ccp) {
  */
 void interrupt interruptionsHP() {
     unsigned char hall;
+    static unsigned char phase = 0;
+    static unsigned char cpt = 0;
 
     // vérifier l'interrupt TMR2 (TICTAC)
     if (PIR1bits.TMR2IF) {
+
         PIR1bits.TMR2IF = 0;
+/*
+        ccpGlobal.ccpa = VITESSE_TEST[0][phase];
+        ccpGlobal.ccpb = VITESSE_TEST[1][phase];
+        ccpGlobal.ccpc = VITESSE_TEST[2][phase];
+        cpt++;
+        if (cpt > 250)
+        {
+            cpt = 0;
+            phase++;
+            if (phase > 5)
+            {
+                phase = 0;
+            }
+        }
+*/
         // envoyer event a MaE
         machine(TICTAC, NULL, &ccpGlobal);
         // mettre a jour les cycles PWM
         CCPR1L = ccpGlobal.ccpa;
         CCPR2L = ccpGlobal.ccpb;
         CCPR3L = ccpGlobal.ccpc;
+        
+        if (lastHall != getHall())
+        {
+            lastHall = getHall();
+            machine(PHASE, lastHall, &ccpGlobal);
+        }
+        
     }
-    
+
+    /*
     // vérifier les interruptions hall
     if (INTCONbits.RBIF) {
         INTCONbits.RBIF = 0;
         // lire le port de capteurs hall
-        hall = PORTB;
-        // décaller pour avoir les capteurs en LSB
-        hall = hall >> 4;
+        hall = getHall();
         // TODO rajouter le bon pointeur ccp
         machine(PHASE, hall, &ccpGlobal);
     }
+    */
+    
 
 }
 
@@ -664,7 +704,6 @@ void low_priority interrupt interruptionsBP() {
     // vérifier les interruptions INT1
     if (INTCON3bits.INT1F) {
         INTCON3bits.INT1F = 0;
-        TMR0L = 0;
         if (INTCON2bits.INTEDG1) {
             INTCON2bits.INTEDG1 = 0;    // Flanc descendant
             TMR1 = 0;                   // mettre TMR1 à 0;
@@ -692,60 +731,98 @@ void main() {
 
 
     // configuration de l'horloge
+    //OSCCONbits.IRCF = 0b111;    // Frequence de base: 16 MHz
     OSCCONbits.IRCF = 0b111;    // Frequence de base: 16 MHz
-    OSCCONbits.SCS = 0b11;      // utilise l'oscillateur interne HFINTOSC
+    OSCCONbits.SCS = 0b00;      // utilise l'oscillateur interne HFINTOSC
 
     OSCTUNEbits.PLLEN = 1;      // utilise la PLL (horloge x 4)
+    //OSCTUNEbits.PLLEN = 0;      // utilise la PLL (horloge x 4)
 
     // active les résistances de tirage sur le port B
-    INTCON2bits.RBPU = 1;
+    INTCON2bits.RBPU = 0;
 
     // configuration des IO du port B
     // les bits du port B sont configuré en entrées
-    TRISB = 0xFF;
-    TRISC = 0x00;
+    //TRISB = 0xFF;
+    // TRISC = 0x00;
 
+    // configuration des ports
+    // PORT A:
+    // A0: echo_1
+    // A1: echo_2
+    // A2: echo_3
+    // A3: echo_4
+    // A4: HAL_X
+    // A5: HAL_Y
+    // A6: HAL_Z
+    // A7: trigger_1
+    TRISA = 0b0111111;
+
+    // PORT B:
+    // B0: remote_1
+    // B1: remote_2
+    // B2: P1B
+    // B3: trigger_2
+    // B4: trigger_3
+    // B5: trigger_4
+    // B6: PGC (programmation et debug)
+    // B7: PGD (programmation et debug)
     // tous les ports du port B ont une pull up.
-    WPUB = 0X00;
+    WPUB = 0XFF;
+    TRISB = 0b11000011;
 
+    // PORT C:
+    // C0: P2B
+    // C1: P2A
+    // C2: P1A
+    // C3: reserve I2C_CLK
+    // C4: reserve I2C_SDA
+    // C5: V_batt analog
+    // C6: P3A
+    // C7: P3B
+    TRISC = 0b00111000;
 
         // initialisation des variables globales
-    ccpGlobal.ccpa = 1;
-    ccpGlobal.ccpb = 1;
-    ccpGlobal.ccpc = 1;
+    ccpGlobal.ccpa = 0;
+    ccpGlobal.ccpb = 0;
+    ccpGlobal.ccpc = 0;
 
-    phaseActuelle = phaseSelonHall(PORTB >> 4);
+
+    lastHall = getHall();
+    phaseActuelle = phaseSelonHall(lastHall);
+    //phaseActuelle = 4;
     angleActuel = angleSelonPhaseEtDirection(phaseActuelle, AVANT);
 
-    CCPR1L = 1;
-    CCPR2L = 1;
-    CCPR3L = 1;
+    CCPR1L = 0;
+    CCPR2L = 0;
+    CCPR3L = 0;
 
     etablitPuissance(PUISSANCE_DEPART);
     status = DEMARRAGE;
 
     // on va assumer qu'on était a vitesse minimale
+    erreurAngle = CYCLES_TICTAC_VITESSE[VITESSE_DEPART];
     nbTicTacDeLaPhasePrecedante = erreurAngle;
     
 
     //configurer et activer l'interrution pour la lecture de la telecommande
     // il faut configurer le timer TMR1
-    T1CONbits.TMR1CS = 0b00;    // source = Fosc / 4
-    T1CONbits.T1CKPS = 0b11;    // diviser sur 8
-    T1CONbits.T1RD16 = 1;       // accès en 16 bit direct
+    //T1CONbits.TMR1CS = 0b00;    // source = Fosc / 4
+    //T1CONbits.T1CKPS = 0b11;    // diviser sur 8
+    //T1CONbits.T1RD16 = 1;       // accès en 16 bit direct
 
     // il faut configurer l'interruption INT1
-    INTCON3bits.INT1IE = 1;   // Active l'interruption externe INT1 (RB1)
-    INTCON2bits.INTEDG1 = 1;  // Interruption au flanc montant
-    INTCON3bits.INT1IP = 0;   // Interruption TMR1 basse priorité.
+    //INTCON3bits.INT1IE = 1;   // Active l'interruption externe INT1 (RB1)
+    //INTCON2bits.INTEDG1 = 1;  // Interruption au flanc montant
+    //INTCON3bits.INT1IP = 0;   // Interruption TMR1 basse priorité.
 
     //configurer le port pour lire les sensors hall et les interrupt
-    INTCONbits.RBIE = 1;        // Active les interruptions IOC3:IOC0
-    INTCON2bits.RBIP = 1;       // interruptions haute priorité
+    //INTCONbits.RBIE = 1;        // Active les interruptions IOC3:IOC0
+    //INTCON2bits.RBIP = 1;       // interruptions haute priorité
 
     // configurer l'interrupt du PWM (evenement TICTAC)
     // Active le temporisateur 2:
-    T2CONbits.T2CKPS = 0;   // pas de diviseur pour le TMR
+    T2CONbits.T2CKPS = 0b01;   // diviseur par 4
     T2CONbits.T2OUTPS = 0;  // pas de diviseur pour l'interrupt
     PR2 = TIMER2_PERIOD;    // charge le timer à 255
     T2CONbits.TMR2ON = 1;   // active le temporisateur
@@ -754,20 +831,28 @@ void main() {
     IPR1bits.TMR2IP = 1;    // interrupt haute priorité
 
     // Active le générateur CCP1:
-    CCP1CONbits.P1M = 0b00;         // PWM générique TODO changer en demi pont
+    CCP1CONbits.P1M0 = 0;           // CCP1 half bridge
+    CCP1CONbits.P1M1 = 1;
     CCP1CONbits.CCP1M = 0b1100;     // P1A et P1B actifs haut
     CCPTMRS0bits.C1TSEL = 0b00;     // TMR2 source
+    CCP1CONbits.DC1B = 0b00;
+    PWM1CONbits.P1DC = 30;
 
 
-    CCP2CONbits.P2M0 = 0;           // PWM générique
+    CCP2CONbits.P2M0 = 0;           // PWM half bridge
     CCP2CONbits.P2M1 = 1;
     CCP2CONbits.CCP2M = 0b1100;     // P2A et P2B actifs haut
     CCPTMRS0bits.C2TSEL = 0b00;     // TMR2 source
+    CCP2CONbits.DC2B = 0b00;
+    PWM2CONbits.P2DC = 30;
 
-    CCP3CONbits.P3M0 = 0;           // PWM générique
+
+    CCP3CONbits.P3M0 = 0;           // PWM half bridge
     CCP3CONbits.P3M1 = 1;
     CCP3CONbits.CCP3M = 0b1100;     // P3A et P3B actifs haut
-    CCPTMRS0bits.C3TSEL = 0b00;     // TMR2 source
+    CCPTMRS0bits.C3TSEL = 0b00;     // TMR2
+    CCP3CONbits.DC3B = 0b00;
+    PWM3CONbits.P3DC = 30;
 
     // activer les interruptions
     // interruption en général
@@ -781,6 +866,8 @@ void main() {
 
     // Ne fait plus rien. Les interruptions s'en chargent.
     while(1);
+    {
+    }
 }
 #endif
 

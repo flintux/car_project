@@ -27,7 +27,7 @@ CLEAN_SUBPROJECTS=${CLEAN_SUBPROJECTS_${SUBPROJECTS}}
 PROJECTNAME=car_project
 
 # Active Configuration
-DEFAULTCONF=test
+DEFAULTCONF=default
 CONF=${DEFAULTCONF}
 
 # All Configurations
